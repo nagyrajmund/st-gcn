@@ -5,6 +5,37 @@ from sklearn.model_selection import train_test_split
 
 # TODO decide if using confidence scores
 
+joint_names = \
+    ["Nose",
+    "Neck",
+    "RShoulder",
+    "RElbow",
+    "RWrist",
+    "LShoulder",
+    "LElbow",
+    "LWrist",
+    "MidHip",
+    "RHip",
+    "RKnee",
+    "RAnkle",
+    "LHip",
+    "LKnee",
+    "LAnkle",
+    "REye",
+    "LEye",
+    "REar",
+    "LEar",
+    "LBigToe",
+    "LSmallToe",
+    "LHeel",
+    "RBigToe",
+    "RSmallToe",
+    "RHeel",
+    "Background"]
+
+joint_indices = {name: i for i, name in enumerate(joint_names)}
+# can access e.g. LKnee for frame (of shape (25,3) by going frame[joint_indices['LKnee'],:]
+
 
 class KTHDataLoader:
     def __init__(self, fpath, use_confidence_scores=True):
@@ -15,7 +46,7 @@ class KTHDataLoader:
         self.use_confidence_scores = use_confidence_scores
 
     def load_data(self, data=None):
-        ''' loads data from dataframe data into two numpy arrays X (openpose keypoints), Y: labels 
+        ''' loads data from dataframe data into two numpy arrays X (openpose keypoints), Y: labels
             X.shape is (# samples,). Each sample in X is of shape (# frames, 25, 3) where 25 = # joints.
             if data is None, uses self.data (all data). Otherwise uses data passed in from filter_by_subjects or filter_by_scenarios
         '''
