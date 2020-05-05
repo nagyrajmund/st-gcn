@@ -4,13 +4,14 @@ import json
 from pathlib import Path
 import pandas as pd
 
+
 actions = ['boxing', 'handclapping', 'handwaving', 'jogging', 'running', 'walking']
 
 
-def process_openpose(dataset_dir):
-    ''' Processes json keypoints for actions in dataset_dir and stores in a npy file '''
+def process_openpose(dataset_dir, output_dir='../datasets/KTH_Action_Dataset'):
+    ''' Processes json keypoints for actions in dataset_dir and stores in a npy file per video '''
 
-    dataset = {'subject': [], 'action': [], 'scenario': [], 'frames': []}
+    metadata = {'subject': [], 'action': [], 'scenario': [], 'filename': []}
 
     for action in actions:
         print('action', action)
@@ -25,30 +26,36 @@ def process_openpose(dataset_dir):
             vid_json_files = list(action_path.glob(vidname+'*.json'))
 
             # loop over all json files for current video
-            counts = []
             for i, json_path in enumerate(vid_json_files):
                 data = json.load(open(str(json_path)))
                 # take first person
                 try:
                     person = data['people'][0]
                     frame_coords_scores = np.array(person['pose_keypoints_2d']).reshape(25,3) # stores [[x_n,y_n,c_n] for each joint n ] for current frame
-                    skeletons.append(frame_coords_scores.tolist())
+                    skeletons.append(frame_coords_scores)
                 except:
                     print('error: no person found in frame for vid',  vidname, '. Ignoring frame', i)
                     continue
 
-            # add data for video to dataset dictionary
             subject, _, scenario, _ = vidname.split('_')
-            dataset['subject'].append(subject)
-            dataset['action'].append(action)
-            dataset['scenario'].append(scenario)
-            dataset['frames'].append(skeletons)
 
-    dataset_fpath = '../datasets/kth_actions.csv'
-    print('Total number of sequences', len(dataset['subject']))
-    print('Saving to', dataset_fpath, '...')
-    df = pd.DataFrame(dataset)
-    df.to_csv(dataset_fpath)
+            # save skeletons for video to .npy file
+            npy_fpath = f'{output_dir}/{subject}_{action}_{scenario}.npy'
+            skeletons = np.asarray(skeletons)
+            np.save(npy_fpath, skeletons)
+
+            # add data for video to dataset dictionary
+            metadata['subject'].append(subject)
+            metadata['action'].append(action)
+            metadata['scenario'].append(scenario)
+            metadata['filename'].append(npy_fpath)
+
+
+    metadata_fpath = f'{output_dir}/metadata.csv'
+    print('Total number of sequences', len(metadata['subject']))
+    print('Saving metadata to', metadata_fpath, '...')
+    df = pd.DataFrame(metadata)
+    df.to_csv(metadata_fpath)
     print('Done.')
 
 
@@ -114,8 +121,10 @@ def to_reprocess(dataset_dir):
     print(list(set(redo)))
 
 
+
 if __name__ == '__main__':
     # check_all_videos_processed('../KTH_Action_Dataset/videos', '../KTH_Action_Dataset/keypoints')
     # to_reprocess('../KTH_Action_Dataset/keypoints')
 
     process_openpose('../KTH_Action_Dataset/keypoints')
+
