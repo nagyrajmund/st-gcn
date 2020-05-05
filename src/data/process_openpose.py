@@ -40,15 +40,16 @@ def process_openpose(dataset_dir, output_dir='../datasets/KTH_Action_Dataset'):
             subject, _, scenario, _ = vidname.split('_')
 
             # save skeletons for video to .npy file
-            npy_fpath = f'{output_dir}/{subject}_{action}_{scenario}.npy'
+            npy_fname = f'{subject}_{action}_{scenario}.npy'
             skeletons = np.asarray(skeletons)
-            np.save(npy_fpath, skeletons)
+            np.save(f'{output_dir}/{npy_fname}', skeletons)
 
             # add data for video to dataset dictionary
             metadata['subject'].append(subject)
             metadata['action'].append(action)
             metadata['scenario'].append(scenario)
-            metadata['filename'].append(npy_fpath)
+            metadata['filename'].append(npy_fname)
+
 
 
     metadata_fpath = f'{output_dir}/metadata.csv'
