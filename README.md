@@ -1,4 +1,5 @@
 # Description
+Project status: under active development
 
 Authors*: [Livia Qian](), [Amrita Panesar](https://github.com/09panesara), [Rajmund Nagy](https://github.com/nagyrajmund/)
 
