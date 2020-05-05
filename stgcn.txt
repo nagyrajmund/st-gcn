@@ -15,7 +15,8 @@ if uni-labeling: K = 1, A = A_1, W = W_1 and j basically starts from 1 (it doesn
 		 f_out = Λ^(-1/2) (A + I) Λ^(-1/2) f_in W
 		 
 What we know about spatial conv:
-- A should be symmetric (undirected edges) and NOT contain the self-connections. A + I = sum(A_j).
+- A should NOT contain the self-connections. A + I = sum(A_j).
+- A is symmetric when using uni-labeling and distance partitioning.
 - A_j is used to select all the nodes from the neighborhood that belong to partition j.
 - Λ_j^{ii} = sum_k (A_j^{ik}) + α is a normalized diagonal matrix. α = 0.001 is to avoid empty rows.
 - This is a 1x1 convolution. The convolution runs over dimensions T and V with filters of size 1 x 1 and a depth of C_in. There are C_out such filters. 1x1 convolutions are usually used for increasing/decreasing the number of channels in the input layer.
