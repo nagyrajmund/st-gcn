@@ -1,1 +1,4 @@
+# Virtual environment folder
 venv/*
+.vscode/*
+**/__pycache__/*
