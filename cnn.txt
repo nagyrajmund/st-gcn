@@ -1,0 +1,41 @@
+For any layer:
+
+--------------
+
+Spatial convolution:
+f_in:			C_in, T, V
+A_j, I_j, Λ_j:	V, V
+W:				C_in, C_out, K
+W_j:			C_in, C_out
+f_out:			C_out, T, V
+
+Formula: f_out = sum_{j = 0}^K (Λ_j^(-1/2) A_j Λ_j^(-1/2)) f_in W_j
+
+if uni-labeling: K = 1, A = A_1, W = W_1 and j basically starts from 1 (it doesn't assign different labels to self-connections)
+		 f_out = Λ^(-1/2) (A + I) Λ^(-1/2) f_in W
+		 
+What we know about spatial conv:
+- A should be symmetric (undirected edges) and NOT contain the self-connections. A + I = sum(A_j).
+- A_j is used to select all the nodes from the neighborhood that belong to partition j.
+- Λ_j^{ii} = sum_k (A_j^{ik}) + α is a normalized diagonal matrix. α = 0.001 is to avoid empty rows.
+- This is a 1x1 convolution. The convolution runs over dimensions T and V with filters of size 1 x 1 and a depth of C_in. There are C_out such filters. 1x1 convolutions are usually used for increasing/decreasing the number of channels in the input layer.
+- Learnable edge importance weighting?
+	
+--------------
+
+Temporal convolution:
+Regular 2D convolution with padding (Γ - 1)/2. Filter size is 1 x Γ. Runs on the temporal dimension, the number of channels stays the same. The dimension of the output is (C_out, T, V).
+Might be enough to use nn.Sequential.
+
+---------------------------------------------------------------
+
+For the entire network, the number of input channels, the number of output channels and the stride look like this:
+64, 64, 1
+64, 64, 1
+64, 64, 1
+64, 128, 2
+128, 128, 1
+128, 128, 1
+128, 256, 2
+256, 256, 1
+256, 256, 1
