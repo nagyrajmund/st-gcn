@@ -2,17 +2,23 @@ For any layer:
 
 --------------
 
-Spatial convolution:
+Spatial convolution (these are for one video):
 f_in:			C_in, T, V
+A:				K, V, V
 A_j, I_j, Λ_j:	V, V
 W:				C_in, C_out, K
 W_j:			C_in, C_out
 f_out:			C_out, T, V
 
+Batch:
+f_in:			N, C_in, T, V
+f_out:			N, C_out, T, V
+
 Formula: f_out = sum_{j = 0}^K (Λ_j^(-1/2) A_j Λ_j^(-1/2)) f_in W_j
 
 if uni-labeling: K = 1, A = A_1, W = W_1 and j basically starts from 1 (it doesn't assign different labels to self-connections)
 		 f_out = Λ^(-1/2) (A + I) Λ^(-1/2) f_in W
+		 In the implementation, I combined A + I because this is easier to handle.
 		 
 What we know about spatial conv:
 - A should NOT contain the self-connections. A + I = sum(A_j).
