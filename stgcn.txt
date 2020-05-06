@@ -19,7 +19,7 @@ What we know about spatial conv:
 - A is symmetric when using uni-labeling and distance partitioning.
 - A_j is used to select all the nodes from the neighborhood that belong to partition j.
 - Λ_j^{ii} = sum_k (A_j^{ik}) + α is a normalized diagonal matrix. α = 0.001 is to avoid empty rows.
-- This is a 1x1 convolution. The convolution runs over dimensions T and V with filters of size 1 x 1 and a depth of C_in. There are C_out such filters. 1x1 convolutions are usually used for increasing/decreasing the number of channels in the input layer.
+- This is a 1x1 convolution. The convolution runs over dimensions T and V with filters of size 1 x 1 and a depth of C_in. There are C_out such filters (C_out * K, if we take into account the fact that the number of W_j's is K). 1x1 convolutions are usually used for increasing/decreasing the number of channels in the input layer.
 - Learnable edge importance weighting?
 	
 --------------
@@ -31,6 +31,7 @@ Might be enough to use nn.Sequential.
 ---------------------------------------------------------------
 
 For the entire network, the number of input channels, the number of output channels and the stride look like this:
+2, 64, 1
 64, 64, 1
 64, 64, 1
 64, 64, 1

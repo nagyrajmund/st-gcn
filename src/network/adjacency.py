@@ -129,6 +129,14 @@ def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
 
     elif strat == Strategy.SPATIAL_CONFIGURATION:
         # TODO implement
+        raise NotImplementedError()
 
         matrices = []
         return matrices
+
+def normalize(matrices, expo=-1/2, alpha = 0.001):
+    normalized = []
+    for A in matrices:
+        Lambda_exp = (np.diag(np.sum(A, axis=1)) + alpha) ** expo
+        normalized.append(Lambda_exp @ A @ Lambda_exp)
+    return normalized
