@@ -38,10 +38,7 @@ KTH_joint_names = \
     "RHeel",
     "Background"]
 
-
-'''
-Edge list for storing joint connections.
-'''
+# Edge list for storing joint connections.
 connections = [(0, 1),
               (1, 2),
               (2, 3),
@@ -67,3 +64,32 @@ connections = [(0, 1),
               (22, 23),
               (11, 24)]
 
+# Adjacency list.
+adj_list = {0: [1, 15, 16],
+         1: [0, 2, 5, 8],
+         2: [1, 3],
+         3: [2, 4],
+         4: [3],
+         5: [1, 6],
+         6: [5, 7],
+         7: [6],
+         8: [1, 9, 12],
+         9: [8, 10],
+         10: [9, 11],
+         11: [10, 22, 24],
+         12: [8, 13],
+         13: [12, 14],
+         14: [13, 19, 21],
+         15: [0, 17],
+         16: [0, 18],
+         17: [15],
+         18: [16],
+         19: [14, 20],
+         20: [19],
+         21: [14],
+         22: [11, 23],
+         23: [22],
+         24: [11]}
+
+# Number of joints.
+nr_of_joints = 25

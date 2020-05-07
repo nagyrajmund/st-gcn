@@ -1,38 +1,7 @@
 import numpy as np
 from enum import Enum
 
-from data.util import connections
-#TODO: these return lists, make them ndarrays
-'''
-Adjacency list.
-'''
-adj_list = {0: [1, 15, 16],
-         1: [0, 2, 5, 8],
-         2: [1, 3],
-         3: [2, 4],
-         4: [3],
-         5: [1, 6],
-         6: [5, 7],
-         7: [6],
-         8: [1, 9, 12],
-         9: [8, 10],
-         10: [9, 11],
-         11: [10, 22, 24],
-         12: [8, 13],
-         13: [12, 14],
-         14: [13, 19, 21],
-         15: [0, 17],
-         16: [0, 18],
-         17: [15],
-         18: [16],
-         19: [14, 20],
-         20: [19],
-         21: [14],
-         22: [11, 23],
-         23: [22],
-         24: [11]}
-
-nr_of_joints = 25
+from data.util import adj_list, nr_of_joints
 
 class Strategy(Enum):
     UNI_LABELING = 0
@@ -43,10 +12,12 @@ def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
     """
     Create adjacency matrices.
 
-    strat: partitioning strategy
-    d: distance
+    Parameters:
+        strat:  partitioning strategy
+        d:  distance
 
-    returns: list of adjacency matrices (partitioned)
+    Returns:
+        list of adjacency matrices (partitioned)
     """
 
     if strat == Strategy.UNI_LABELING:
@@ -102,15 +73,39 @@ def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
         return matrices
 
     elif strat == Strategy.SPATIAL_CONFIGURATION:
-        # TODO implement
+        # TODO implement. It needs the input or at least the distances from the gravity center
         raise NotImplementedError()
 
         matrices = []
         return matrices
 
 def normalize(matrices, expo=-1/2, alpha = 0.001):
+    """
+    Normalize adjacency matrices.
+
+    Parameters:
+        matrices:  original adjacency matrices
+        expo:  exponent (optional)
+        alpha:  additional parameter for avoiding empty rows (optional)
+
+    Returns:
+        normalized adjacency matrices as a numpy array
+    """
+
     normalized = []
     for A in matrices:
         Lambda_exp = (np.diag(np.sum(A, axis=1)) + alpha) ** expo
         normalized.append(Lambda_exp @ A @ Lambda_exp)
-    return normalized
+    return np.asarray(normalized)
+
+def get_normalized_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1, alpha = 0.001):
+    """
+    Create normalized adjacency matrices.
+
+    Parameters:
+        strat:  partitioning strategy (optional)
+        d:  distance (optional)
+        alpha:  additional parameter for avoiding empty rows (optional)
+    """
+
+    return normalize(create_adjacency_matrices(strat, d), alpha = alpha)

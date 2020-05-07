@@ -1,13 +1,11 @@
 import torch.nn as nn
-from adjacency import Strategy
-import adjacency as adj
 
 class SpatialTemporalConv(nn.Module):
     """
     Perform spatial and temporal convolution on a sequence of joint locations.
     """
 
-    def __init__(self, C_in, C_out, A, gamma, temporal_stride):
+    def __init__(self, C_in, C_out, A, gamma, temporal_stride, temporal_padding):
         """
         Parameters:
             C_in:  number of input channels
@@ -15,12 +13,16 @@ class SpatialTemporalConv(nn.Module):
             A:  normalized adjacency matrix (K,V,V) where K is the spatial kernel size
             gamma:  kernel size for the temporal convolution
             temporal_stride:  stride for the temporal layer
+            temporal_padding:  padding for the temporal layer
         """
+        
         super().__init__()        
 
         self.spatialConv = SpatialConv(C_in, C_out, A)
+
         temporal_kernel_size = (1, gamma)
-        self.temporalConv = nn.Conv2d(C_out, C_out, temporal_kernel_size, stride=temporal_stride)
+        self.temporalConv = \
+            nn.Conv2d(C_out, C_out, temporal_kernel_size, stride = temporal_stride, padding = temporal_padding)
     
     def forward(self, f_in):
         # TODO check if we need to reshape the dimensions
@@ -49,8 +51,8 @@ class SpatialConv(nn.Module):
         self.V = self.A.shape[1]
         # Filter size is 1x1 (so we that don't reduce the input size), but the
         # Output has to be K, C_out, T, V
-        kernel_size = (1,1) 
-        self.W = nn.Conv2d(C_in, self.K * C_out, kernel_size, **spatial_args)
+        kernel_size = (1, 1) 
+        self.W = nn.Conv2d(C_in, self.K * C_out, kernel_size)
 
     def forward(self, f_in):
         """
