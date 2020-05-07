@@ -20,18 +20,18 @@ def _convert_images_to_video(images_folder, output_vid_path):
     fps = 30 # default frames per second in openpose
 
     # ffmpeg command to convert images to video
-    command = f'ffmpeg -framerate {fps} -i {images_folder}/%d.png -c:v libx264 -pix_fmt yuv420p {output_vid_path}'
+    command = f'ffmpeg -framerate {fps} -i {images_folder}/%d.png -c:v libx264 -pix_fmt yuv420p -vf pad=ceil(iw/2)*2:ceil(ih/2)*2 {output_vid_path}'
     commands = command.split(' ')
     subprocess.call(commands)
 
     print('Done')
 
 
-def plot_skeleton(seq, output_fpath, vidname=None):
+def plot_skeleton(seq, output_fpath):
     '''
         Plots skeleton from keypoints in .json files for video
     Inputs:
-        seq: array of keypoints for frames corresponding to video to plot (N_frames, N_joints, 3)
+        seq: array of keypoints for frames corresponding to video to plot (N_frames, N_joints, 2)
         output_fpath: fpath to save output video with overlay of openpose keypoints
     Returns:
         None
@@ -77,13 +77,12 @@ def plot_skeleton(seq, output_fpath, vidname=None):
 
 def augment_data(seq):
     '''
-    Applies random moving to sequence of shape (N_frames, 25, 3)
+    Applies random moving to sequence of shape (N_frames, 25, 2)
     '''
     # TODO change to batch on sequences. Or do it on the fly in torch DataLoader?
 
-    seq_copy = np.copy(seq)
-    transformed_frames = seq_copy[:,:,:2] # TODO remove once removed confidence scores @amrita
-    N_frames, N_joints, d = seq_copy.shape
+    transformed_frames = np.copy(seq)
+    N_frames, N_joints, d = transformed_frames.shape
 
     # here x axis points right, y axis points up
     # TODO come up with more sensible decisions for these pre-chosen parameters
@@ -93,13 +92,11 @@ def augment_data(seq):
 
     # choose 3 out of 4 transformations to apply
     transformations = ['rotation', 'translation', 'scaling', 'flip']
-    # transformations_to_apply = np.random.choice(transformations, 3)
-    transformations_to_apply = transformations
+    transformations_to_apply = np.random.choice(transformations, 3)
+
     # apply rotation
     if 'rotation' in transformations_to_apply:
-        print('rotating')
-        # randomly select rotation
-        theta = np.radians(np.random.choice(rotations))
+        theta = np.radians(np.random.choice(rotations)) # randomly select rotation to apply
         c, s = np.cos(theta), np.sin(theta)
         rot_matx = np.array([[c, s], [-s, c]])
         # flatten to rotate across frames
@@ -110,21 +107,18 @@ def augment_data(seq):
 
     # apply translation
     if 'translation' in transformations_to_apply:
-        print('translating')
-        t = translation[np.random.choice(range(3))]
+        t = translation[np.random.choice(range(3))] # randomly select translation to apply
         transformed_frames += t
 
     # apply scaling factor
     if 'scaling' in transformations_to_apply:
-        print('scaling')
-        scale_factor = np.random.choice(scale_factors)
+        scale_factor = np.random.choice(scale_factors) # randomly select scaling to apply
         transformed_frames *= scale_factor
 
     if 'flip' in transformations_to_apply:
         transformed_frames[:,:,0] = -transformed_frames[:,:,0]
     # TODO interpolate transformation during frames in sequence to generate smooth effect of 'random moving'? @amrita
 
-    seq_copy[:,:,:2] = transformed_frames
     return transformed_frames
 
 
