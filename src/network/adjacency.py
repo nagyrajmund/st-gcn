@@ -1,37 +1,11 @@
 import numpy as np
 from enum import Enum
 
-'''
-Edge list for storing joint connections.
-'''
-connections = [(0, 1),
-              (1, 2),
-              (2, 3),
-              (3, 4),
-              (1, 5),
-              (5, 6),
-              (6, 7),
-              (1, 8),
-              (8, 9),
-              (9, 10),
-              (10, 11),
-              (8, 12),
-              (12, 13),
-              (13, 14),
-              (0, 15),
-              (0, 16),
-              (15, 17),
-              (16, 18),
-              (14, 19),
-              (19, 20),
-              (14, 21),
-              (11, 22),
-              (22, 23),
-              (11, 24)]
+from data.util import connections
 
 '''
 Adjacency list.
-'''     
+'''
 adj_list = {0: [1, 15, 16],
          1: [0, 2, 5, 8],
          2: [1, 3],
@@ -112,7 +86,7 @@ def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
             # For each joint, do a (limited) DFS.
             neighbour_elements = [i] # Contains every element in the neighbourhood
             open_elements = [i] # Contains only those that belong to the most recent iteration
-            
+
             for dist in range(d):
                 new_open = []
                 while open_elements:

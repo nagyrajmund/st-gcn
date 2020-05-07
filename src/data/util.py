@@ -1,6 +1,6 @@
 KTH_label_name_to_number = \
     {"boxing"      : 0,
-    "handclapping" : 1, 
+    "handclapping" : 1,
     "handwaving"   : 2,
     "jogging"      : 3,
     "running"      : 4,
@@ -37,3 +37,33 @@ KTH_joint_names = \
     "RSmallToe",
     "RHeel",
     "Background"]
+
+
+'''
+Edge list for storing joint connections.
+'''
+connections = [(0, 1),
+              (1, 2),
+              (2, 3),
+              (3, 4),
+              (1, 5),
+              (5, 6),
+              (6, 7),
+              (1, 8),
+              (8, 9),
+              (9, 10),
+              (10, 11),
+              (8, 12),
+              (12, 13),
+              (13, 14),
+              (0, 15),
+              (0, 16),
+              (15, 17),
+              (16, 18),
+              (14, 19),
+              (19, 20),
+              (14, 21),
+              (11, 22),
+              (22, 23),
+              (11, 24)]
+
