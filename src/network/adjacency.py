@@ -2,7 +2,7 @@ import numpy as np
 from enum import Enum
 
 from data.util import connections
-
+#TODO: these return lists, make them ndarrays
 '''
 Adjacency list.
 '''
