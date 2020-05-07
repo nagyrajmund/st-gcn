@@ -7,24 +7,20 @@ class SpatialTemporalConv(nn.Module):
     Perform spatial and temporal convolution on a sequence of joint locations.
     """
 
-    def __init__(self, C_in, C_out, A, gamma, spatial_args, temporal_args):
+    def __init__(self, C_in, C_out, A, gamma, temporal_stride):
         """
         Parameters:
             C_in:  number of input channels
             C_out:  number of output channels
             A:  normalized adjacency matrix (K,V,V) where K is the spatial kernel size
             gamma:  kernel size for the temporal convolution
-            spatial_args:  optional keyword arguments for the spatial Conv2D layer as a dict
-            temporal_args:  optional keyword arguments for the temporal Conv2d layer as a dict
-        
-        NOTE: spatial_args and temporal_args should not contain the channel and kernel sizes, as they 
-        are deduced automatically! For details about the possible parameters, see the official PyTorch documentation.
+            temporal_stride:  stride for the temporal layer
         """
-        super().__init__()
-        
-        self.spatialConv = SpatialConv(C_in, C_out, A, spatial_args)
+        super().__init__()        
+
+        self.spatialConv = SpatialConv(C_in, C_out, A)
         temporal_kernel_size = (1, gamma)
-        self.temporalConv = nn.Conv2d(C_out, C_out, temporal_kernel_size, **temporal_args)
+        self.temporalConv = nn.Conv2d(C_out, C_out, temporal_kernel_size, stride=temporal_stride)
     
     def forward(self, f_in):
         # TODO check if we need to reshape the dimensions
@@ -32,10 +28,10 @@ class SpatialTemporalConv(nn.Module):
 
 class SpatialConv(nn.Module):
     """
-    Spatial convolutional layer.
+    Spatial convolutional layer. Performs 1x1 convolution with the (1,1,C_in,C_out,K)-dimensional filter.
     """
 
-    def __init__(self, C_in, C_out, A, spatial_args):
+    def __init__(self, C_in, C_out, A):
         """
         Constructs the layer with given parameters.
         
@@ -43,12 +39,6 @@ class SpatialConv(nn.Module):
             C_in:  number of input channels
             C_out:  number of output channels
             A:  normalized adjacency matrix (K, V, V)
-            kernel_size:  kernel size of the 2D convolution (optional)
-            
-            spatial_args:  optional keyword arguments for the spatial Conv2D layer as a dict
-        
-        NOTE: spatial_args should not contain the channel and kernel sizes, as they 
-        are deduced automatically! For details about the possible parameters, see the official PyűTorch documentation.
         """
 
         super().__init__()
