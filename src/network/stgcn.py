@@ -38,8 +38,9 @@ class STGCN(nn.Module):
     def forward(self, x):
         """
         Forward pass.
+        x: (N, T, V, C_in)
 
         f_in: input data of size (N, C_in, T, V)
         """
-        
-        self.model(x)
+        f_in = x.permute(0, 3, 1, 2)  # reshape for forward algorithm to shape (N, C, T, V)
+        self.model(f_in)
