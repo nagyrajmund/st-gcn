@@ -1,5 +1,6 @@
 import torch.nn as nn
 from st_graphconv import SpatialTemporalConv
+import torch.nn.functional as F
 import adjacency as adj
 from adjacency import Strategy
 
@@ -8,22 +9,29 @@ class STGCN(nn.Module):
     Network containing all the layers needed for spatio-temporal graph convolution.
     """
 
-    def __init__(self, C_in, gamma, strat = Strategy.UNI_LABELING, d = 1):
+    # TODO @livia Do we need to add a batch normalization layer?
+    def __init__(self, C_in, gamma, nr_classes, strat = Strategy.UNI_LABELING, d = 1):
         """
         Parameters:
             C_in:  number of input channels
             gamma:  kernel size for the temporal convolution
+            nr_classes:  number of classes
             strat:  partitioning strategy (optional)
             d:  distance (optional)
         """
 
         super().__init__()
 
+        self.nr_classes = nr_classes
         temporal_padding = (gamma - 1) / 2
         A = adj.get_normalized_adjacency_matrices(strat, d)
+        self.K = self.A.shape[0]
+        self.V = self.A.shape[1]
+        self.C_in = C_in
+        self.C_out = 256
 
-        self.model = nn.Sequential(
-            SpatialTemporalConv(C_in, 64, A, gamma, 1, temporal_padding),
+        self.conv = nn.Sequential(
+            SpatialTemporalConv(self.C_in, 64, A, gamma, 1, temporal_padding),
             SpatialTemporalConv(64, 64, A, gamma, 1, temporal_padding),
             SpatialTemporalConv(64, 64, A, gamma, 1, temporal_padding),
             SpatialTemporalConv(64, 64, A, gamma, 1, temporal_padding),
@@ -32,15 +40,36 @@ class STGCN(nn.Module):
             SpatialTemporalConv(128, 128, A, gamma, 1, temporal_padding),
             SpatialTemporalConv(128, 256, A, gamma, 2, temporal_padding),
             SpatialTemporalConv(256, 256, A, gamma, 1, temporal_padding),
-            SpatialTemporalConv(256, 256, A, gamma, 1, temporal_padding)
+            SpatialTemporalConv(256, self.C_out, A, gamma, 1, temporal_padding)
         )
+
+        self.fc_layer = nn.Linear(256, self.nr_classes)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
         """
         Forward pass.
         x: (N, T, V, C_in)
 
-        f_in: input data of size (N, C_in, T, V)
+        Parameters:
+            f_in: input data of size (N, C_in, T, V)
+
+        Returns:
+            the results of classification
         """
-        f_in = x.permute(0, 3, 1, 2)  # reshape for forward algorithm to shape (N, C, T, V)
-        self.model(f_in)
+
+        x = x.permute(0, 3, 1, 2)  # reshape for forward algorithm to shape (N, C, T, V)
+
+        # Appy convolutional layers.
+        x = self.conv(x) # (N, C_out, T, V)
+        T = x.shape[2]
+
+        # Global pooling. Can't be added to Seqential as the kernel size depends on x. 
+        x = F.avg_pool2d(x, (T, self.V)) # (N, C_out, 1, 1)
+        x = x.view(N, self.C_out) # (N, C_out)
+
+        # Fully connected layer + SoftMax
+        x = self.fc_layer(x) # (N, nr_classes)
+        x = self.softmax(x) # (N, 1)
+
+        return x

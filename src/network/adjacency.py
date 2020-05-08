@@ -8,6 +8,8 @@ class Strategy(Enum):
     DISTANCE = 1
     SPATIAL_CONFIGURATION = 2
 
+# TODO @livia incorporate intra-frame connections?
+
 def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
     """
     Create adjacency matrices.
