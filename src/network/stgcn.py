@@ -23,10 +23,10 @@ class STGCN(nn.Module):
         super().__init__()
 
         self.nr_classes = nr_classes
-        temporal_padding = (gamma - 1) / 2
+        temporal_padding = (gamma - 1) // 2
         A = adj.get_normalized_adjacency_matrices(strat, d)
-        self.K = self.A.shape[0]
-        self.V = self.A.shape[1]
+        self.K = A.shape[0]
+        self.V = A.shape[1]
         self.C_in = C_in
         self.C_out = 256
 
@@ -41,9 +41,9 @@ class STGCN(nn.Module):
             SpatialTemporalConv(128, 256, A, gamma, 2, temporal_padding),
             SpatialTemporalConv(256, 256, A, gamma, 1, temporal_padding),
             SpatialTemporalConv(256, self.C_out, A, gamma, 1, temporal_padding)
-        )
+        ).double()
 
-        self.fc_layer = nn.Linear(256, self.nr_classes)
+        self.fc_layer = nn.Linear(256, self.nr_classes).double()
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
@@ -57,19 +57,18 @@ class STGCN(nn.Module):
         Returns:
             the results of classification
         """
-
         x = x.permute(0, 3, 1, 2)  # reshape for forward algorithm to shape (N, C, T, V)
 
         # Appy convolutional layers.
         x = self.conv(x) # (N, C_out, T, V)
-        T = x.shape[2]
+        N, _, T, _ = x.shape
 
-        # Global pooling. Can't be added to Seqential as the kernel size depends on x. 
+        # Global pooling. Can't be added to Seqential as the kernel size depends on x.
         x = F.avg_pool2d(x, (T, self.V)) # (N, C_out, 1, 1)
         x = x.view(N, self.C_out) # (N, C_out)
-
         # Fully connected layer + SoftMax
         x = self.fc_layer(x) # (N, nr_classes)
         x = self.softmax(x) # (N, 1)
-
+        # TODO @amrita remove softmax, don't need if we use cross entropy as cross entropy does softmax on pred implicitly
+        # see https://discuss.pytorch.org/t/making-prediction-with-argmax/49526/2
         return x

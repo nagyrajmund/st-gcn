@@ -1,48 +1,46 @@
-from src.data.datasets import KTHDataset
+from data.datasets import KTHDataset
 from network import stgcn
 from torch import optim, nn, utils
-import torch
 from torch.utils.data import DataLoader
 from pathlib import Path
 
 def train_network(config):
     # initialise dataset and network
+    # TODO tidy config
     dataset = KTHDataset(config['metadata_file'], config['dataset_dir'])
     dataloader = DataLoader(dataset, config['batch_size'],
                             sampler=config['sampler'])  # Sampler can handle randomization etc.
-    stgcn_ntwk = stgcn.STGCN(config['C_in'], config['gamma'])
+    model = stgcn.STGCN(config['C_in'], config['gamma'], config['nr_classes'])
 
-    model = stgcn_ntwk.model
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
     # train
-    batch_size = 20
-    n_batches = 10 # TODO change
-    for epoch_idx in range(config['n_epochs']):
-        model.train()  # Tell the model that we are training it (this affects the behaviour of dropout, batchnorm etc.)
+    for epoch in range(config['n_epochs']):
         for batch_idx, (data, label, scores) in enumerate(dataloader):
-        # for i in range(n_batches):
-        #     start_index = i * batch_size
-        #     end_index = (i+1) * batch_size
-        #     data, labels, scores = dataset[start_index:end_index]
-        #     print(data.dtype)
-        #     print(data.shape)
-        #     data = torch.from_numpy(data)
-        #     labels = torch.tensor(labels)
-
-            data = data[0]  # shape (1,1,T,V,C) tmp fix TODO remove
+            # TODO @amrita add augmentation every e epochs
+            data = data[0]  # shape (1,1,T,V,C) tmp fix TODO @amrita remove
+            label = label[0]
             data, label = data.to(config['device']), label.to(config['device'])  # Move to GPU
 
+            optimizer.zero_grad() # pytorch accumulates gradients on every call to loss.backward() so need to 0 gradients to get correct parameter update
+            output = model.forward(data.double())
 
-            optimizer.zero_grad()
-            output = model(data)  # Forward pass
             loss = criterion(output, label)
+            # TODO @amrita add loss_train, loss_val
             loss.backward()  # Backward pass
             optimizer.step()  # Update the weights
 
-            if batch_idx == config.batch_size - 1:
+            if epoch % 10 == 0:
+                print('Epoch: ', epoch + 1, '\t loss: ', loss)
+
+            if batch_idx == config['batch_size'] - 1:
                 break
+
+    # get prediction
+    # TODO replace with test set
+    # pred = torch.argmax(model(test_data), dim=1)
+
 
 
 if __name__ == "__main__":
@@ -52,7 +50,8 @@ if __name__ == "__main__":
         'dataset_dir': Path(dataset_dir),
         'metadata_file': Path(dataset_dir) / 'metadata.csv',
         'batch_size': 1,  # 32 TODO get working with batch size > 1
-        'n_epochs': 10,
+        'n_epochs': 20,
+        'nr_classes': 6,
         'device': None,
         'sampler': None,
         'C_in': 2,  # number of input channels
