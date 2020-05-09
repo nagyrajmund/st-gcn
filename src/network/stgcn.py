@@ -67,7 +67,7 @@ class STGCN(nn.Module):
         x = x.view(N, self.C_out) # (N, C_out)
         # Fully connected layer + SoftMax
         x = self.fc_layer(x) # (N, nr_classes)
-        x = self.softmax(x) # (N, 1)
+        # x = self.softmax(x) # (N, 1)
         # TODO @amrita remove softmax, don't need if we use cross entropy as cross entropy does softmax on pred implicitly
         # see https://discuss.pytorch.org/t/making-prediction-with-argmax/49526/2
         return x

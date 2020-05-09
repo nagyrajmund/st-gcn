@@ -59,9 +59,12 @@ class SpatialTemporalConv(nn.Module):
         f_in = self.batch_n(f_in)
         f_out = self.temporalConv(self.spatialConv(f_in)) # (N, C_out, T, V)
         f_out = self.batch_n_2(f_out)
-        f_out = self.relu(f_out)
-        f_out = self.dropout(f_out)
-        return f_out
+        # relu and dropout are inplace operations so have to clone input and rename variables to allow variables \
+        # to be accessible for backward algorithm.
+        # we don't set inplace = False as this typically decreases performance
+        f_act = self.relu(f_out.clone())
+        f_drop = self.dropout(f_act.clone())
+        return f_drop
 
 class SpatialConv(nn.Module):
     """
