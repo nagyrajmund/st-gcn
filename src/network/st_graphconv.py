@@ -1,5 +1,5 @@
 import torch.nn as nn
-from torch import einsum, Tensor
+import torch
 
 class SpatialTemporalConv(nn.Module):
     """
@@ -7,7 +7,7 @@ class SpatialTemporalConv(nn.Module):
     """
 
     # TODO @livia Not sure that some layers are in the correct order? (Batch normalization, ReLU)
-    def __init__(self, C_in, C_out, A, gamma, temporal_stride, temporal_padding, dropout_rate = 0.5):
+    def __init__(self, C_in, C_out, A, gamma, temporal_stride, temporal_padding, dropout_rate=0.5):
         """
         Parameters:
             C_in:  number of input channels
@@ -84,7 +84,7 @@ class SpatialConv(nn.Module):
         super().__init__()
         self.C_in = C_in
         self.C_out = C_out
-        self.A = Tensor(A).double()
+        self.A = torch.Tensor(A).double()
         self.K = self.A.shape[0]
         self.V = self.A.shape[1]
         # Filter size is 1x1 (so we that don't reduce the input size), but the
@@ -102,7 +102,7 @@ class SpatialConv(nn.Module):
         N, C, T, _ = f_in.shape # Number of data points, number of channels, number of time frames
         f_in = self.W(f_in) # Dimension is (N, K * C_out, T, V)
         f_in = f_in.view(N, self.K, self.C_out, T, self.V) # TODO Order preserved?
-        f_out = einsum('kvw,nkctw->nctv', self.A, f_in)
+        f_out = torch.einsum('kvw,nkctw->nctv', self.A, f_in)
 
         return f_out
 

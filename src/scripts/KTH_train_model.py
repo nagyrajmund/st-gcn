@@ -1,13 +1,14 @@
 # TODO: this should be added to every runnable script to make imports work
-# Eventually we can use python 
+# Eventually we can use python
 import sys
 sys.path.append('../')
 
 from data.datasets import KTHDataset
 from network import stgcn
-from torch import optim, nn, utils
+from torch import optim, nn, utils, autograd
 from torch.utils.data import DataLoader
 from pathlib import Path
+
 
 def train_network(config):
     """
@@ -21,10 +22,12 @@ def train_network(config):
     dataset = KTHDataset(config['metadata_file'], config['dataset_dir'])
     dataloader = DataLoader(dataset, config['batch_size'],
                             sampler=config['sampler'])  # Sampler can handle randomization etc.
-    model = stgcn.STGCN(config['C_in'], config['gamma'], config['nr_classes'])
+    model = stgcn.STGCN(config['C_in'], config['gamma'], config['nr_classes'], edge_importance=config['edge_importance_weighting'])
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+    autograd.set_detect_anomaly(True) # enable anomaly detection TODO @amrita remove for debugging purposes only
 
     # train
     for epoch in range(config['n_epochs']):
@@ -39,7 +42,11 @@ def train_network(config):
 
             loss = criterion(output, label)
             # TODO @amrita add loss_train, loss_val
-            loss.backward()  # Backward pass
+            # TODO @amrita need to double check this is okay, needed for when edge importance weighting is used
+            if batch_idx == 0:
+                loss.backward(retain_graph = True)
+            else:
+                loss.backward()  # Backward pass
             optimizer.step()  # Update the weights
 
             if epoch % 10 == 0:
@@ -47,6 +54,7 @@ def train_network(config):
 
             if batch_idx == config['batch_size'] - 1:
                 break
+
 
     # get prediction
     # TODO replace with test set
@@ -66,7 +74,8 @@ if __name__ == "__main__":
         'device': None,
         'sampler': None,
         'C_in': 2,  # number of input channels
-        'gamma': 9  # temporal convolution kernel size
+        'gamma': 9,  # temporal convolution kernel size
+        'edge_importance_weighting': True  # whether to use edge importance weighting
     }
 
     train_network(config)
