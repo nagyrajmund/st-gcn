@@ -10,7 +10,13 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 
 def train_network(config):
-    # initialise dataset and network
+    """
+    Initialise dataset and network.
+
+    Parameters:
+        config:  map containing relevant parameters
+    """
+
     # TODO tidy config
     dataset = KTHDataset(config['metadata_file'], config['dataset_dir'])
     dataloader = DataLoader(dataset, config['batch_size'],

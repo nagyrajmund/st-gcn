@@ -10,10 +10,12 @@ def _convert_images_to_video(images_folder, output_vid_path):
     '''
     Converts images in images_folder to video and saves as .mp4.
 
-    images_folder: path to folder containing images to convert to mp4
-    output_vid_path: path to save output video
+    Parameters:
+        images_folder:  path to folder containing images to convert to mp4
+        output_vid_path:  path to save output video
 
-    returns: None
+    Returns:
+        None
     '''
 
     print(f'Converting images in {images_folder} and saving to video {output_vid_path}...')
@@ -29,10 +31,12 @@ def _convert_images_to_video(images_folder, output_vid_path):
 
 def plot_skeleton(seq, output_fpath):
     '''
-        Plots skeleton from keypoints in .json files for video
+        Plots skeleton from keypoints in .json files for video.
+
     Inputs:
         seq: array of keypoints for frames corresponding to video to plot (N_frames, N_joints, 2)
         output_fpath: fpath to save output video with overlay of openpose keypoints
+        
     Returns:
         None
     '''
@@ -77,7 +81,10 @@ def plot_skeleton(seq, output_fpath):
 
 def augment_data(seq):
     '''
-    Applies random moving to sequence of shape (N_frames, 25, 2)
+    Applies random moving to sequence of shape (N_frames, 25, 2).
+
+    Parameters:
+        seq:  sequence
     '''
     # TODO change to batch on sequences. Or do it on the fly in torch DataLoader?
 

@@ -46,6 +46,16 @@ class SpatialTemporalConv(nn.Module):
         self.dropout = nn.Dropout(dropout_rate, inplace = True)
 
     def forward(self, f_in):
+        """
+        Forward pass.
+
+        Parameters:
+            f_in:  input of size (N, C_in, T, V)
+
+        Returns:
+            output of the ST-GCN unit
+        """
+
         f_in = self.batch_n(f_in)
         f_out = self.temporalConv(self.spatialConv(f_in)) # (N, C_out, T, V)
         f_out = self.batch_n_2(f_out)

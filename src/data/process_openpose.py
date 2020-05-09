@@ -9,7 +9,13 @@ actions = ['boxing', 'handclapping', 'handwaving', 'jogging', 'running', 'walkin
 
 
 def process_openpose(dataset_dir, output_dir='../datasets/KTH_Action_Dataset'):
-    ''' Processes json keypoints for actions in dataset_dir and stores in a npy file per video '''
+    '''
+    Processes json keypoints for actions in dataset_dir and stores in a npy file per video.
+    
+    Parameters:
+        dataset_dir:  dataset directory
+        output_dir:  output directory
+    '''
 
     metadata = {'subject': [], 'action': [], 'scenario': [], 'filename': []}
 
@@ -61,7 +67,13 @@ def process_openpose(dataset_dir, output_dir='../datasets/KTH_Action_Dataset'):
 
 
 def check_all_videos_processed(videos_dir, dataset_dir):
-    ''' checks all videos have been processed by openpose and are saved in json keypoints '''
+    '''
+    Checks all videos have been processed by openpose and are saved in json keypoints.
+
+    Parameters:
+        videos_dir:  videos directory
+        dataset_dir:  dataset directory
+    '''
     count = 0
     for action in actions:
         print('Checking all videos have been converted by openpose for action', action)
@@ -80,7 +92,12 @@ def check_all_videos_processed(videos_dir, dataset_dir):
 
 
 def to_reprocess(dataset_dir):
-    ''' checks which videos are missing more than 10 frames in a row and should be reprocessed '''
+    '''
+    Checks which videos are missing more than 10 frames in a row and should be reprocessed.
+    
+    Parameters:
+        dataset_dir:  dataset directory
+    '''
 
     redo = []
     for action in actions:

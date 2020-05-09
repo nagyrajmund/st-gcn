@@ -48,15 +48,15 @@ class STGCN(nn.Module):
     def forward(self, x):
         """
         Forward pass.
-        x: (N, T, V, C_in)
 
         Parameters:
-            f_in: input data of size (N, C_in, T, V)
+            x:  (N, T, V, C_in)
 
         Returns:
             the results of classification
         """
-        x = x.permute(0, 3, 1, 2)  # reshape for forward algorithm to shape (N, C, T, V)
+
+        x = x.permute(0, 3, 1, 2)  # reshape for forward algorithm to shape (N, C_in, T, V)
 
         # Appy convolutional layers.
         x = self.conv(x) # (N, C_out, T, V)
