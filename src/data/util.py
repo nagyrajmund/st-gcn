@@ -1,5 +1,9 @@
+import sys
+sys.path.append('./')
+
 import numpy as np
 import torch
+
 ### Helpers for handling dataset itself
 
 def pad_array_with_loops(x, target_len):

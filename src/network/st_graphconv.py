@@ -84,7 +84,7 @@ class SpatialConv(nn.Module):
         super().__init__()
         self.C_in = C_in
         self.C_out = C_out
-        self.A = torch.Tensor(A).double()
+        self.A = nn.Parameter(torch.Tensor(A).float()) # TODO parameter or register buffer? https://discuss.pytorch.org/t/resolved-runtimeerror-expected-device-cpu-and-dtype-float-but-got-device-cuda-0-and-dtype-float/54783/18
         self.K = self.A.shape[0]
         self.V = self.A.shape[1]
         # Filter size is 1x1 (so we that don't reduce the input size), but the
@@ -93,12 +93,15 @@ class SpatialConv(nn.Module):
 
         self.W = nn.Conv2d(C_in, self.K * C_out, kernel_size)
 
+
     def forward(self, f_in):
         """
         Forward pass.
 
         f_in: input data of size (N, C_in, T, V)
         """
+        self.A = self.A.to(f_in.device) # TODO needed?
+
         N, C, T, _ = f_in.shape # Number of data points, number of channels, number of time frames
         f_in = self.W(f_in) # Dimension is (N, K * C_out, T, V)
         f_in = f_in.view(N, self.K, self.C_out, T, self.V) # TODO Order preserved?

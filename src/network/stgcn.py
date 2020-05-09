@@ -49,9 +49,9 @@ class STGCN(nn.Module):
             SpatialTemporalConv(128, 256, A*self.Masks[7], gamma, 2, temporal_padding),
             SpatialTemporalConv(256, 256, A*self.Masks[8], gamma, 1, temporal_padding),
             SpatialTemporalConv(256, self.C_out, A*self.Masks[9], gamma, 1, temporal_padding)
-        ).double()
+        ).float()
 
-        self.fc_layer = nn.Linear(256, self.nr_classes).double()
+        self.fc_layer = nn.Linear(256, self.nr_classes).float()
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
