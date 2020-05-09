@@ -1,8 +1,8 @@
 import torch.nn as nn
-from st_graphconv import SpatialTemporalConv
+from .st_graphconv import SpatialTemporalConv
 import torch.nn.functional as F
-import adjacency as adj
-from adjacency import Strategy
+from . import adjacency as adj
+
 
 class STGCN(nn.Module):
     """
@@ -10,7 +10,7 @@ class STGCN(nn.Module):
     """
 
     # TODO @livia Do we need to add a batch normalization layer?
-    def __init__(self, C_in, gamma, nr_classes, strat = Strategy.UNI_LABELING, d = 1):
+    def __init__(self, C_in, gamma, nr_classes, strat = adj.Strategy.UNI_LABELING, d = 1):
         """
         Parameters:
             C_in:  number of input channels

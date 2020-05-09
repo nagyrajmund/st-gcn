@@ -1,3 +1,8 @@
+# TODO: this should be added to every runnable script to make imports work
+# Eventually we can use python 
+import sys
+sys.path.append('../')
+
 from data.datasets import KTHDataset
 from network import stgcn
 from torch import optim, nn, utils
