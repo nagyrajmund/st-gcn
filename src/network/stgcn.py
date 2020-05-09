@@ -9,7 +9,6 @@ class STGCN(nn.Module):
     Network containing all the layers needed for spatio-temporal graph convolution.
     """
 
-    # TODO @livia Do we need to add a batch normalization layer?
     def __init__(self, C_in, gamma, nr_classes, strat = adj.Strategy.UNI_LABELING, d = 1):
         """
         Parameters:
