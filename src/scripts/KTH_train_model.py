@@ -8,7 +8,7 @@ from network import stgcn
 from torch import optim, nn, utils, autograd
 from torch.utils.data import DataLoader
 from pathlib import Path
-
+import util
 
 def train_network(config):
     """
@@ -19,9 +19,9 @@ def train_network(config):
     """
 
     # TODO tidy config
-    dataset = KTHDataset(config['metadata_file'], config['dataset_dir'])
-    dataloader = DataLoader(dataset, config['batch_size'],
-                            sampler=config['sampler'])  # Sampler can handle randomization etc.
+    dataset = KTHDataset(config['metadata_file'], config['dataset_dir'], use_confidence_scores=False)
+    dataloader = DataLoader(dataset, batch_size=config['batch_size'], sampler=config['sampler'],
+                            collate_fn=util.loopy_pad_collate_fn)
     model = stgcn.STGCN(config['C_in'], config['gamma'], config['nr_classes'], edge_importance=config['edge_importance_weighting'])
 
     criterion = nn.CrossEntropyLoss()
@@ -31,10 +31,11 @@ def train_network(config):
 
     # train
     for epoch in range(config['n_epochs']):
-        for batch_idx, (data, label, scores) in enumerate(dataloader):
-            # TODO @amrita add augmentation every e epochs
-            data = data[0]  # shape (1,1,T,V,C) tmp fix TODO @amrita remove
-            label = label[0]
+
+        for batch_idx, (data, label) in enumerate(dataloader):
+            if batch_idx == len(dataset) // 2:
+                break
+
             data, label = data.to(config['device']), label.to(config['device'])  # Move to GPU
 
             optimizer.zero_grad() # pytorch accumulates gradients on every call to loss.backward() so need to 0 gradients to get correct parameter update
@@ -68,11 +69,11 @@ if __name__ == "__main__":
     config = {
         'dataset_dir': Path(dataset_dir),
         'metadata_file': Path(dataset_dir) / 'metadata.csv',
-        'batch_size': 1,  # 32 TODO get working with batch size > 1
+        'batch_size': 32,
         'n_epochs': 20,
         'nr_classes': 6,
         'device': None,
-        'sampler': None,
+        'sampler': None,  # Sampler can handle randomization etc.
         'C_in': 2,  # number of input channels
         'gamma': 9,  # temporal convolution kernel size
         'edge_importance_weighting': True  # whether to use edge importance weighting

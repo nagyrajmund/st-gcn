@@ -32,12 +32,10 @@ class STGCN(nn.Module):
         self.C_out = 256
 
         if edge_importance:
-            print('edge importance')
             # initialise Masks for each stgcn layer as trainable parameter in network
             self.Masks = torch.nn.ParameterList([nn.Parameter(torch.ones(A.shape)) for i in range(10)])
         else:
-            print('no edge importance')
-            self.Masks = [torch.ones(A.shape) for i in range(10)] # not trainable TODO @amrita check
+            self.Masks = [torch.ones(A.shape) for i in range(10)] # not trainable
 
 
         self.conv = nn.Sequential(
