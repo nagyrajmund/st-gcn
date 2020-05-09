@@ -1,3 +1,47 @@
+import numpy as np
+import torch
+### Helpers for handling dataset itself
+
+def pad_array_with_loops(x, target_len):
+    """Pad an array on the second axis to the specified length by 
+    looping its values from the beginning.
+    
+    Parameters:
+        x:  a 4-dimensional array of shape (N,T,V,C)
+        target_len:  the desired length
+    
+    Returns:  The padded array of shape (N,target_len,V,C)
+    """
+    x_len = x.shape[1] # on time axis
+    if x_len >= target_len:
+        return x
+    
+    # For info about pad_widths, visit the official documentation for numpy.pad().
+    pad_widths = [(0,0), (0, target_len - x_len), (0,0), (0,0)]
+    
+
+    return np.pad(x, pad_widths, mode='wrap')
+
+
+def loopy_pad_collate_fn(batch):
+    """Pad each sequence to the maximum length in the batch along the time axis, then combine them into a tensor.
+    
+    Parameters:
+        batch:  A list that has batch_size * tuple(f_in, label) elements, where
+                f_in is the (N, T, V, C) skeleton sequence array and label is the corresponding label. 
+    Returns:  
+        xx:  A tensor of shape (N,T*,V,C) where T* is the length of the longest sequence in batch.
+        labels:  A tensor of shape (N).
+    """ 
+    max_len = max([x[0].shape[1] for x in batch])
+    xx = [torch.from_numpy(pad_array_with_loops(x[0], max_len)) for x in batch]
+    labels = [torch.from_numpy(x[1]) for x in batch]
+
+    return torch.cat(xx), torch.cat(labels)
+
+### Constants and enums/transformations related to data representation.
+nr_of_joints = 25
+
 KTH_label_name_to_number = \
     {"boxing"      : 0,
     "handclapping" : 1,
@@ -90,6 +134,3 @@ adj_list = {0: [1, 15, 16],
          22: [11, 23],
          23: [22],
          24: [11]}
-
-# Number of joints.
-nr_of_joints = 25

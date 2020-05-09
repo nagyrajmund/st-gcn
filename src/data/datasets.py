@@ -53,9 +53,8 @@ class KTHDataset(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-            print('here')
+            print('Using a tensor!')
 
-        # TODO (rajmund): we could add a try-catch here, but I think it would slow us down
         # check if slice is given or index
         if isinstance(idx, slice):
             start = idx.start
@@ -68,6 +67,7 @@ class KTHDataset(Dataset):
         else:
             idxs = [idx]
 
+        # TODO (rajmund): we could add a try-catch here, but I think it would slow us down
         # load sequences and labels for slice/index given
         sequences = np.asarray([np.load(file) for i in idxs for file in [self.filenames[i]]])
         labels = self.labels[idxs]
@@ -77,7 +77,9 @@ class KTHDataset(Dataset):
         # TODO (amrita): change if we save confidence scores into separate .npy files
         joint_sequences = np.array([seq[:, :, :-1] for seq in sequences])
 
-        if self.use_confidence_scores:
+        if self.use_confidence_scores:            
+            print('[ERROR] Confidence scores are not yet supported! Exiting...')
+            exit()
             # joint_sequences, confidence_scores = np.split(joint_sequences, [-1], axis=3)
             confidence_scores = np.array([seq[:, :, -1] for seq in joint_sequences])
             return joint_sequences, labels, confidence_scores
@@ -85,25 +87,38 @@ class KTHDataset(Dataset):
         # Otherwise discard the confidence scores
         return joint_sequences, labels
 
-
-
 if __name__ == "__main__":
-    dataset_dir = Path(__file__).parent / '../../datasets/KTH_Action_Dataset/'
-    metadata_file = dataset_dir / 'metadata.csv'
-    a = KTHDataset(metadata_file, dataset_dir)
-    # print(a.filenames[0])
-    seq, action, scores = a[0]
-    sequences, action, scores = a[:10]
+    config = \
+    {
+        'dataset_dir'   : '../../datasets/KTH_Action_Dataset/',
+        'metadata_file' : 'metadata.csv'
+    }
 
+    dataset_dir = Path(__file__).parent / config['dataset_dir']
+    metadata_file = dataset_dir / config['metadata_file']
+
+    dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False)
+
+    print(dataset.filenames[0])
+    seq, action = dataset[0]
+    sequences, action = dataset[:10]
     print(sequences.shape)
 
-    dataloader = DataLoader(a, 10, sampler=None)
+    dataloader = DataLoader(dataset, batch_size=2, sampler=None, collate_fn=util.loopy_pad_collate_fn)
 
-    # for batch_idx, (data, label, scores) in enumerate(dataloader):
-    #     TODO problem with batch size > 1
-    #     print(batch_idx)
-    #     print(data.shape)
-    #     input()
+    for batch_idx, (data, label) in enumerate(dataloader):
+        #TODO write a proper test
+        print(batch_idx)
+        print(label.shape)
+
+        print(data.shape)
+        print("Beginning of data 1:")
+        print(data[0, :3, 1, :])
+        print("Loopy:")
+        print(data[0, 360:363, 1, :])
+
+        if batch_idx == len(dataset) // 2:
+            break
 
 
 
