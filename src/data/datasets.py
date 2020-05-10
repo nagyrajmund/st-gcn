@@ -1,15 +1,72 @@
 # TODO: this should be added to every runnable script to make imports work
-# Eventually we can use python 
 import sys
 sys.path.append('../')
-import pandas as pd
 
-import numpy as np
-from torch.utils.data import Dataset
-from data import util
-import torch
 from pathlib import Path
-from torch.utils.data import DataLoader
+import pandas as pd
+import numpy as np
+import torch
+from torch.utils.data import Dataset, SubsetRandomSampler, DataLoader
+from sklearn.model_selection import train_test_split
+from data import util
+
+
+class SplitDataset:
+    def __init__(self, metadata_csv_path):
+        self.metadata = pd.read_csv(metadata_csv_path)
+
+    def _get_indices(self, train, val, test):
+        return list(train.index.values), list(val.index.values), list(test.index.values)
+
+    def split_by_subject(self, train=15, val=5, test=5):
+        ''' returns: indices corresponding to train and test, with train/(train+test) subjects in the train set,
+            test/(train+test) subjects in the test set.
+        '''
+        subjects = list(set(self.metadata['subject']))
+        # get subjects in train, val and test sets
+        train_subjects, val_test_subjects = train_test_split(subjects, train_size=train/(train+val+test))
+        val_subjects, test_subjects = train_test_split(val_test_subjects, train_size=val/(val+test))
+
+        train = self.metadata[self.metadata['subject'].isin(train_subjects)]
+        val = self.metadata[self.metadata['subject'].isin(val_subjects)]
+        test = self.metadata[self.metadata['subject'].isin(test_subjects)]
+
+        # get indices of videos with these subjects in metadata_csv file
+        train_indices, val_indices, test_indices = self._get_indices(train, val, test)
+
+        assert (len(train_indices) + len(val_indices) + len(test_indices)) == len(self.metadata)
+        return train_indices, val_indices, test_indices
+
+
+    def split_by_view(self, train_views, val_views):
+        ''' returns: indices corresponding to train and test, with as close to train/(train+test) subjects in the train set as possible,
+            test/(train+test) subjects in the test set.
+        '''
+        train = self.metadata[self.metadata['scenario'].isin(train_views)]
+        val = self.metadata[self.metadata['scenario'].isin(val_views)]
+        test = self.metadata[~self.metadata['scenario'].isin(val_views+train_views)]
+
+        train_indices, val_indices, test_indices = self._get_indices(train, val, test)
+
+        assert (len(train_indices) + len(val_indices) + len(test_indices)) == len(self.metadata)
+        return train_indices, val_indices, test_indices
+
+    def split(self, data=None, train_split=0.6, val_split=0.2, test_split=0.2):
+        ''' splits dataset into train, val and test set stratified by class according to proportion \\
+            indicated by train_split, val_split and test_split args
+            returns: indices correspnding to train and test set
+        '''
+        if data is None:
+            data = self.metadata
+        train, val_test = train_test_split(data, train_size=train_split/(train_split+val_split+test_split), random_state=0, stratify=data[['action']])
+        val, test = train_test_split(val_test, test_size=test_split/(val_split+test_split), random_state=0, stratify=val_test[['action']])
+
+        train_indices, val_indices, test_indices = self._get_indices(train, val, test)
+
+        assert (len(train_indices) + len(val_indices) + len(test_indices)) == len(self.metadata)
+        return train_indices, val_indices, test_indices
+
+
 
 class KTHDataset(Dataset):
     """
@@ -27,7 +84,7 @@ class KTHDataset(Dataset):
         the filename of the corresponding numpy data.
 
         Parameters:
-            metadata_csv_file:  Path object of the .csv file which contains the metadata of each video
+            metadata_csv_path:  Path object of the .csv file which contains the metadata of each video
             numpy_data_folder:  Path object of the folder which contains the joint sequences as .npy files
             transforms:  Transformations to apply to each retrieved datapoint
             use_confidence_scores: If False, trim the OpenPose confidence scores from the returned items
@@ -77,7 +134,7 @@ class KTHDataset(Dataset):
         # TODO (amrita): change if we save confidence scores into separate .npy files
         joint_sequences = np.array([seq[:, :, :-1] for seq in sequences])
 
-        if self.use_confidence_scores:            
+        if self.use_confidence_scores:
             print('[ERROR] Confidence scores are not yet supported! Exiting...')
             exit()
             # joint_sequences, confidence_scores = np.split(joint_sequences, [-1], axis=3)
@@ -99,15 +156,27 @@ if __name__ == "__main__":
 
     dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False)
 
-    print(dataset.filenames[0])
-    seq, action = dataset[0]
-    sequences, action = dataset[:10]
-    print(sequences.shape)
+    ''' Examine the dataset '''
+    # print(dataset.filenames[0])
+    # seq, action = dataset[0]
+    # sequences, action = dataset[:10]
+    # print(sequences.shape)
 
-    dataloader = DataLoader(dataset, batch_size=2, sampler=None, collate_fn=util.loopy_pad_collate_fn)
+    ''' Train, val, test split'''
+    splitDataset = SplitDataset(metadata_file)
+    # train_indices, val_indices, test_indices = splitDataset.split_by_view(['d1', 'd2'], ['d3'])
+    train_indices, val_indices, test_indices = splitDataset.split_by_subject()
 
-    for batch_idx, (data, label) in enumerate(dataloader):
-        #TODO write a proper test
+    # generate samplers using indices from filtering
+    train_sampler = SubsetRandomSampler(train_indices)
+    val_sampler = SubsetRandomSampler(test_indices)
+
+    train_loader = DataLoader(dataset, batch_size=10, sampler=train_sampler, collate_fn=util.loopy_pad_collate_fn)
+    val_loader = DataLoader(dataset, batch_size=10, sampler=val_sampler, collate_fn=util.loopy_pad_collate_fn)
+
+    '''' Batching '''
+    for batch_idx, (data, label) in enumerate(train_loader):
+        # TODO write a proper test
         print(batch_idx)
         print(label.shape)
 
