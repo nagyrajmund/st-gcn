@@ -8,7 +8,7 @@ from network import stgcn
 from torch import optim, nn, utils, autograd
 from torch.utils.data import DataLoader
 from pathlib import Path
-import util
+from data import util
 
 def train_network(config):
     """
