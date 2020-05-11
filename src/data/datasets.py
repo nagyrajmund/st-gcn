@@ -79,7 +79,7 @@ class KTHDataset(Dataset):
     joint_indices = {name: i for i, name in enumerate(util.KTH_joint_names)}
     # can access e.g. LKnee for frame (of shape (25,3) by going frame[joint_indices['LKnee'],:]
 
-    def __init__(self, metadata_csv_path, numpy_data_folder, apply_transforms = False, use_confidence_scores=True):
+    def __init__(self, metadata_csv_path, numpy_data_folder, filter=None, apply_transforms=False, use_confidence_scores=True):
         """
         Read and store the metadata of the KTH dataset, i.e. the actor, the label, the scenario and
         the filename of the corresponding numpy data.
@@ -87,6 +87,7 @@ class KTHDataset(Dataset):
         Parameters:
             metadata_csv_path:  Path object of the .csv file which contains the metadata of each video
             numpy_data_folder:  Path object of the folder which contains the joint sequences as .npy files
+            filter: list of indices in metadata_csv file to keep in dataset. If None, entire dataset is kept.
             apply_transforms:  whether to apply transforms to each retrieved point
             use_confidence_scores: If False, trim the OpenPose confidence scores from the returned items
         """
@@ -95,6 +96,11 @@ class KTHDataset(Dataset):
         self.use_confidence_scores = use_confidence_scores
 
         metadata = pd.read_csv(metadata_csv_path)
+
+        if filter is not None:
+            metadata = metadata[metadata.index.isin(filter)]
+            metadata = metadata.reset_index()
+
         # # Drop the confidence score from OpenPose
         # self.sequences = data['frames'].apply(lambda x: x[:,:,2])
 
@@ -161,9 +167,9 @@ if __name__ == "__main__":
     dataset_dir = Path(__file__).parent / config['dataset_dir']
     metadata_file = dataset_dir / config['metadata_file']
 
-    dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False, apply_transforms=True)
 
     ''' Examine the dataset '''
+    # dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False, apply_transforms=False)
     # print(dataset.filenames[0])
     # seq, action = dataset[0]
     # sequences, action = dataset[:10]
@@ -173,34 +179,41 @@ if __name__ == "__main__":
     splitDataset = SplitDataset(metadata_file)
     # train_indices, val_indices, test_indices = splitDataset.split_by_view(['d1', 'd2'], ['d3'])
     train_indices, val_indices, test_indices = splitDataset.split_by_subject()
+    train_dataset = KTHDataset(metadata_file, dataset_dir, filter=train_indices, use_confidence_scores=False, apply_transforms=True)
+    val_dataset = KTHDataset(metadata_file, dataset_dir, filter=val_indices, use_confidence_scores=False, apply_transforms=False)
+    test_dataset = KTHDataset(metadata_file, dataset_dir, filter=test_indices, use_confidence_scores=False, apply_transforms=False)
 
     # generate samplers using indices from filtering
-    train_sampler = SubsetRandomSampler(train_indices)
-    val_sampler = SubsetRandomSampler(test_indices)
+    from torch.utils.data import RandomSampler
+    train_sampler = RandomSampler(train_dataset)
+    val_sampler = RandomSampler(test_dataset)
 
-    train_loader = DataLoader(dataset, batch_size=10, sampler=train_sampler, collate_fn=util.loopy_pad_collate_fn)
-    val_loader = DataLoader(dataset, batch_size=10, sampler=val_sampler, collate_fn=util.loopy_pad_collate_fn)
+    train_loader = DataLoader(train_dataset, batch_size=10, sampler=train_sampler, collate_fn=util.loopy_pad_collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=1, sampler=val_sampler, collate_fn=util.loopy_pad_collate_fn)
 
 
-    for  batch_idx, ((train_data, train_labels), (val_data, val_labels))in enumerate(zip(train_loader, val_loader)):
+
+    '''' Batching '''
+    for batch_idx, (data, label) in enumerate(train_loader):
+        # TODO write a proper test
+        print(batch_idx)
+        print(label.shape)
+
+        print(data.shape)
+        print("Beginning of data 1:")
+        print(data[0, :3, 1, :])
+        print("Loopy:")
+        print(data[0, 360:363, 1, :])
+
+        if batch_idx == len(train_dataset) // 2:
+            break
+
+
+    # loop through train loader and val loader simultaneously
+    for batch_idx, ((train_data, train_labels), (val_data, val_labels))in enumerate(zip(train_loader, val_loader)):
+        print('Batch', batch_idx)
+        print(train_labels.shape)
         print(train_data.shape)
+        print(val_labels.shape)
         print(val_data.shape)
-
-    # '''' Batching '''
-    # for batch_idx, (data, label) in enumerate(train_loader):
-    #     # TODO write a proper test
-    #     print(batch_idx)
-    #     print(label.shape)
-    #
-    #     print(data.shape)
-    #     print("Beginning of data 1:")
-    #     print(data[0, :3, 1, :])
-    #     print("Loopy:")
-    #     print(data[0, 360:363, 1, :])
-    #
-    #     if batch_idx == len(dataset) // 2:
-    #         break
-
-
-
 
