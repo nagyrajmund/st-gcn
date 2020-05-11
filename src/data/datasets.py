@@ -9,7 +9,8 @@ import torch
 from torch.utils.data import Dataset, SubsetRandomSampler, DataLoader
 from sklearn.model_selection import train_test_split
 from data import util
-
+from augmentation import augment_data
+import random
 
 class SplitDataset:
     def __init__(self, metadata_csv_path):
@@ -78,7 +79,7 @@ class KTHDataset(Dataset):
     joint_indices = {name: i for i, name in enumerate(util.KTH_joint_names)}
     # can access e.g. LKnee for frame (of shape (25,3) by going frame[joint_indices['LKnee'],:]
 
-    def __init__(self, metadata_csv_path, numpy_data_folder, transforms = None, use_confidence_scores=True):
+    def __init__(self, metadata_csv_path, numpy_data_folder, apply_transforms = False, use_confidence_scores=True):
         """
         Read and store the metadata of the KTH dataset, i.e. the actor, the label, the scenario and
         the filename of the corresponding numpy data.
@@ -86,11 +87,11 @@ class KTHDataset(Dataset):
         Parameters:
             metadata_csv_path:  Path object of the .csv file which contains the metadata of each video
             numpy_data_folder:  Path object of the folder which contains the joint sequences as .npy files
-            transforms:  Transformations to apply to each retrieved datapoint
+            apply_transforms:  whether to apply transforms to each retrieved point
             use_confidence_scores: If False, trim the OpenPose confidence scores from the returned items
         """
         self.numpy_data_folder = numpy_data_folder
-        self.transforms = transforms
+        self.apply_transforms = apply_transforms
         self.use_confidence_scores = use_confidence_scores
 
         metadata = pd.read_csv(metadata_csv_path)
@@ -134,6 +135,12 @@ class KTHDataset(Dataset):
         # TODO (amrita): change if we save confidence scores into separate .npy files
         joint_sequences = np.array([seq[:, :, :-1] for seq in sequences])
 
+        # TODO (amrita) should we move this outside of class after dataloader has looped so that we can vectorise the matrix multiplication
+        # apply data augmentation
+        if self.apply_transforms and random.randint(0, 1): # randomly apply augmentation
+            joint_sequences = augment_data(joint_sequences)
+
+
         if self.use_confidence_scores:
             print('[ERROR] Confidence scores are not yet supported! Exiting...')
             exit()
@@ -154,7 +161,7 @@ if __name__ == "__main__":
     dataset_dir = Path(__file__).parent / config['dataset_dir']
     metadata_file = dataset_dir / config['metadata_file']
 
-    dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False)
+    dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False, apply_transforms=True)
 
     ''' Examine the dataset '''
     # print(dataset.filenames[0])
@@ -174,20 +181,25 @@ if __name__ == "__main__":
     train_loader = DataLoader(dataset, batch_size=10, sampler=train_sampler, collate_fn=util.loopy_pad_collate_fn)
     val_loader = DataLoader(dataset, batch_size=10, sampler=val_sampler, collate_fn=util.loopy_pad_collate_fn)
 
-    '''' Batching '''
-    for batch_idx, (data, label) in enumerate(train_loader):
-        # TODO write a proper test
-        print(batch_idx)
-        print(label.shape)
 
-        print(data.shape)
-        print("Beginning of data 1:")
-        print(data[0, :3, 1, :])
-        print("Loopy:")
-        print(data[0, 360:363, 1, :])
+    for  batch_idx, ((train_data, train_labels), (val_data, val_labels))in enumerate(zip(train_loader, val_loader)):
+        print(train_data.shape)
+        print(val_data.shape)
 
-        if batch_idx == len(dataset) // 2:
-            break
+    # '''' Batching '''
+    # for batch_idx, (data, label) in enumerate(train_loader):
+    #     # TODO write a proper test
+    #     print(batch_idx)
+    #     print(label.shape)
+    #
+    #     print(data.shape)
+    #     print("Beginning of data 1:")
+    #     print(data[0, :3, 1, :])
+    #     print("Loopy:")
+    #     print(data[0, 360:363, 1, :])
+    #
+    #     if batch_idx == len(dataset) // 2:
+    #         break
 
 
 

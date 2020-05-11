@@ -1,98 +1,17 @@
+import sys
+sys.path.append('../')
+
 import numpy as np
-import os, subprocess
 from pathlib import Path
-from util import connections
-from shutil import rmtree
-import matplotlib.pyplot as plt
-from datasets import KTHDataset
 
-def _convert_images_to_video(images_folder, output_vid_path):
+
+def augment_data(sequences):
     '''
-    Converts images in images_folder to video and saves as .mp4.
+    Applies random moving to sequences each of shape (N_frames, 25, 2).
 
     Parameters:
-        images_folder:  path to folder containing images to convert to mp4
-        output_vid_path:  path to save output video
-
-    Returns:
-        None
+        sequences:  sequences
     '''
-
-    print(f'Converting images in {images_folder} and saving to video {output_vid_path}...')
-    fps = 30 # default frames per second in openpose
-
-    # ffmpeg command to convert images to video
-    command = f'ffmpeg -framerate {fps} -i {images_folder}/%d.png -c:v libx264 -pix_fmt yuv420p -vf pad=ceil(iw/2)*2:ceil(ih/2)*2 {output_vid_path}'
-    commands = command.split(' ')
-    subprocess.call(commands)
-
-    print('Done')
-
-
-def plot_skeleton(seq, output_fpath):
-    '''
-        Plots skeleton from keypoints in .json files for video.
-
-    Inputs:
-        seq: array of keypoints for frames corresponding to video to plot (N_frames, N_joints, 2)
-        output_fpath: fpath to save output video with overlay of openpose keypoints
-        
-    Returns:
-        None
-    '''
-    # TODO remove extra point being plotted in frame from extra irrelevant joint @amrita
-
-    assert seq.shape[1] == 25
-    N_frames = len(seq)
-    output_dir = os.path.dirname(output_fpath)
-    assert os.path.isdir(output_dir)
-
-    output_tmp_dir = output_dir + '/tmp' # temp directory to store images plotted per frame
-    if os.path.isdir(output_tmp_dir):
-        print('Plotting to a directory that possibly already has images in it')
-    else:
-        os.mkdir(output_tmp_dir)
-
-    for i in range(N_frames):
-        skeleton = np.array(seq[i])  # get skeleton at frame i of video
-        x = skeleton[:, 0]
-        y = skeleton[:, 1] # reverse vertical axis for plotting purposes
-
-        fig, ax = plt.subplots(1, figsize=(3, 8))
-        sc = ax.scatter(x, -y, s=40)
-        plt.gca().set_aspect('equal', adjustable='box')
-
-        for bone in connections:
-            x0 = x[bone[0]]
-            y0 = y[bone[0]]
-            x1 = x[bone[1]]
-            y1 = y[bone[1]]
-            if not ([x0, y0] == [0, 0] or [x1, y1] == [0, 0]):  # don't plot if one of joints is 0 i.e. missing estimate
-                ax.plot([x[bone[0]], x[bone[1]]], [-y[bone[0]], -y[bone[1]]], 'g')
-
-        plt.axis('off')
-        plt.savefig(f'{output_tmp_dir}/{i}.png', bbox_inches='tight')
-        plt.close(fig)
-
-    _convert_images_to_video(output_tmp_dir, output_fpath)
-    # remove tmp directory of images
-    rmtree(output_tmp_dir)
-
-
-def augment_data(seq):
-    '''
-    Applies random moving to sequence of shape (N_frames, 25, 2).
-
-    Parameters:
-        seq:  sequence
-    '''
-    # TODO change to batch on sequences. Or do it on the fly in torch DataLoader?
-
-    transformed_frames = np.copy(seq)
-    N_frames, N_joints, d = transformed_frames.shape
-
-    # here x axis points right, y axis points up
-    # TODO come up with more sensible decisions for these pre-chosen parameters
     rotations = [15, -15, 5, -5, 10, -10] # each sublist is a set of rotations about origin
     translation = [[5, 5], [0, 5], [5, 0]] # each sublist is a set of translations on x axis, y axis
     scale_factors = [1.05, 1.1, 0.95]
@@ -100,43 +19,70 @@ def augment_data(seq):
     # choose 3 out of 4 transformations to apply
     transformations = ['rotation', 'translation', 'scaling', 'flip']
     transformations_to_apply = np.random.choice(transformations, 3)
+    T = np.eye((3))
+
 
     # apply rotation
     if 'rotation' in transformations_to_apply:
         theta = np.radians(np.random.choice(rotations)) # randomly select rotation to apply
         c, s = np.cos(theta), np.sin(theta)
-        rot_matx = np.array([[c, s], [-s, c]])
-        # flatten to rotate across frames
-        transformed_frames = np.reshape(transformed_frames, (N_frames*N_joints, d))
-        transformed_frames = np.dot(transformed_frames, rot_matx)
-        # reshape back
-        transformed_frames = np.reshape(transformed_frames, (N_frames, N_joints, d))
+        rot_matx = np.array([[c, s, 0], [-s, c, 0], [0, 0, 1]])
+        T = rot_matx.dot(T)
 
     # apply translation
     if 'translation' in transformations_to_apply:
-        t = translation[np.random.choice(range(3))] # randomly select translation to apply
-        transformed_frames += t
+        t_x, t_y = translation[np.random.choice(range(3))] # randomly select translation to apply
+        t_matx = np.array([[1,0,t_x], [0,1,t_y], [0,0,1]])
+        T = t_matx.dot(T)
 
     # apply scaling factor
     if 'scaling' in transformations_to_apply:
         scale_factor = np.random.choice(scale_factors) # randomly select scaling to apply
-        transformed_frames *= scale_factor
+        scale_mtx = np.array([[scale_factor,0,0], [0,scale_factor,0], [0,0,1]])
+        T = scale_mtx.dot(T)
 
     if 'flip' in transformations_to_apply:
-        transformed_frames[:,:,0] = -transformed_frames[:,:,0]
-    # TODO interpolate transformation during frames in sequence to generate smooth effect of 'random moving'? @amrita
+        flip_mtx = np.array(([[-1,0,0],[0,1,0],[0,0,1]]))
+        T = flip_mtx.dot(T)
 
-    return transformed_frames
+    # TODO interpolate transformation during frames in sequence to generate smooth effect of 'random moving' @amrita
+    # TODO move to Data class
+
+    def _transform_sequence(x):
+        N_frames, N_joints, d = x.shape
+        assert N_joints == 25
+
+        transformed_frames = np.zeros((N_frames, N_joints, d+1))
+        transformed_frames[:,:,:2] = np.copy(x)
+
+        transformed_frames = np.reshape(transformed_frames, (N_frames * N_joints, d+1)) # tODOcome back to
+        transformed_frames = np.dot(transformed_frames, T)
+
+        # reshape back
+        transformed_frames = np.reshape(transformed_frames, (N_frames, N_joints, d+1))
+
+        return transformed_frames[:,:,:2]
+
+    # apply T
+    transformed_sequences = np.asarray([_transform_sequence(seq) for seq in sequences])
+
+    return transformed_sequences
+
 
 
 if __name__ == '__main__':
     # read in sequence
     dataset_dir = Path(__file__).parent / '../../datasets/KTH_Action_Dataset/'
     metadata_file = dataset_dir / 'metadata.csv'
-    a = KTHDataset(metadata_file, dataset_dir)
-    print(a.filenames[0])
-    seq, action, scores = a[0]
-    print(seq[0].shape)
-    # plot
-    augmented_seq = augment_data(seq[0])
-    plot_skeleton(augmented_seq, '../../datasets/example_augmented_plot.mp4')
+    from datasets import KTHDataset
+    dataset = KTHDataset(metadata_file, dataset_dir, use_confidence_scores=False)
+    seqs, actions = dataset[:4]
+    original_seq = np.copy(seqs[0])
+
+    augmented_sequences = augment_data(seqs[:4])
+
+    assert np.array_equal(seqs[0], original_seq) # check original sequence still intact
+
+    from util import plot_skeleton
+    print('Saving plot of skeleton')
+    plot_skeleton(augmented_sequences[0], '../../datasets/example_augmented_plot.mp4')
