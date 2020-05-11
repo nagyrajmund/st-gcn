@@ -56,7 +56,7 @@ class SpatialTemporalConv(nn.Module):
             output of the ST-GCN unit
         """
 
-        f_in = self.batch_n(f_in)
+        f_in = self.batch_n(f_in.float())
         f_out = self.temporalConv(self.spatialConv(f_in)) # (N, C_out, T, V)
         f_out = self.batch_n_2(f_out)
         # relu and dropout are inplace operations so have to clone input and rename variables to allow variables \
