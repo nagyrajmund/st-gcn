@@ -3,7 +3,7 @@ from enum import Enum
 
 from data.util import adj_list, nr_of_joints
 
-class Strategy(Enum):
+class Strategy(IntEnum):
     UNI_LABELING = 0
     DISTANCE = 1
     SPATIAL_CONFIGURATION = 2
