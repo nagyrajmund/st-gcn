@@ -1,7 +1,7 @@
 import torch.nn as nn
 from .st_graphconv import SpatialTemporalConv
 import torch.nn.functional as F
-from . import adjacency as adj
+from data import adjacency as adj
 import torch
 
 

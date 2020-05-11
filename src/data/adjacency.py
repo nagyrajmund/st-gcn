@@ -1,5 +1,5 @@
 import numpy as np
-from enum import Enum
+from enum import IntEnum
 
 from data.util import adj_list, nr_of_joints
 
