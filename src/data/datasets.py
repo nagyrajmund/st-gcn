@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import Dataset, SubsetRandomSampler, DataLoader
 from sklearn.model_selection import train_test_split
 from data import util
-from augmentation import augment_data
+from data.augmentation import augment_data
 import random
 
 class SplitDataset:
@@ -79,7 +79,7 @@ class KTHDataset(Dataset):
     joint_indices = {name: i for i, name in enumerate(util.KTH_joint_names)}
     # can access e.g. LKnee for frame (of shape (25,3) by going frame[joint_indices['LKnee'],:]
 
-    def __init__(self, metadata_csv_path, numpy_data_folder, filter=None, apply_transforms=False, use_confidence_scores=True):
+    def __init__(self, metadata_csv_path, numpy_data_folder, filter=None, transforms=None, use_confidence_scores=True):
         """
         Read and store the metadata of the KTH dataset, i.e. the actor, the label, the scenario and
         the filename of the corresponding numpy data.
@@ -92,7 +92,7 @@ class KTHDataset(Dataset):
             use_confidence_scores: If False, trim the OpenPose confidence scores from the returned items
         """
         self.numpy_data_folder = numpy_data_folder
-        self.apply_transforms = apply_transforms
+        self.transforms = transforms
         self.use_confidence_scores = use_confidence_scores
 
         metadata = pd.read_csv(metadata_csv_path)
@@ -107,7 +107,7 @@ class KTHDataset(Dataset):
         # convert label names to numbers and store in an ndarray
         self.labels = metadata['action'].apply(lambda x: util.label_name_to_number(x)).to_numpy()
         # append the filenames to the data folder path
-        self.filenames = metadata['filename'].apply(lambda x: numpy_data_folder / x)
+        self.filenames = metadata['filename'].apply(lambda x: numpy_data_folder + '/' + x)
         self.actors = metadata['subject']
         self.scenarios = metadata['scenario']
 
@@ -143,8 +143,9 @@ class KTHDataset(Dataset):
 
         # TODO (amrita) should we move this outside of class after dataloader has looped so that we can vectorise the matrix multiplication
         # apply data augmentation
-        if self.apply_transforms and random.randint(0, 1): # randomly apply augmentation
-            joint_sequences = augment_data(joint_sequences)
+        # TODO (rajmund) randint doesn't do what you think it does
+        if self.transforms is not None and random.randint(0, 1): # randomly apply augmentation
+            joint_sequences = self.transforms(joint_sequences)
 
 
         if self.use_confidence_scores:
