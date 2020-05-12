@@ -24,7 +24,7 @@ class L_STGCN(LightningModule):
         self.dataset_filters = dataset_filters
 
         temporal_padding = (hparams.gamma - 1) // 2
-        A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d)
+        A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d, hparams.distance_file)
         self.K = A.shape[0]
         self.V = A.shape[1]
 
@@ -161,6 +161,8 @@ def build_argument_parser():
     parser.add_argument('--num_workers', type=int, default=1)
     parser = L_STGCN.add_model_specific_args(parser) # Add model-specific args
     parser = Trainer.add_argparse_args(parser) # Add ALL training-specific args
+    parser.add_argument('--distance_file', type=str, default='')
+    # In case of spatial conf. partitioning, pre-calculate distances and store them in a file
     
     return parser
 
