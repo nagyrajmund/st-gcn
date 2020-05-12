@@ -31,7 +31,7 @@ class L_STGCN(LightningModule):
         self.dataset_filters = dataset_filters
 
         temporal_padding = (hparams.gamma - 1) // 2
-        A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d, hparams.distance_file)
+        A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d, distance_file=hparams.distance_file)
         self.K = A.shape[0]
         self.V = A.shape[1]
 
