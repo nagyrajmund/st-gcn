@@ -16,9 +16,16 @@ from argparse import ArgumentParser
 from network.st_graphconv import SpatialTemporalConv
 
 class L_STGCN(LightningModule):
-    retain_graph = True
+    """ 
+    Spatiotemporal graph-convolutional network based on ST-GCN.
+    """
+
     def __init__(self, hparams, dataset_filters=None):
-        #TODO @rajmund:  update documentation about parameters once it's stable
+        """
+        Parameters:
+            hparams:  command-line arguments, see add_model_specific_args() for details
+            dataset_filters:  #TODO
+        """ 
         super().__init__() 
         self.hparams = hparams
         self.dataset_filters = dataset_filters
@@ -28,7 +35,8 @@ class L_STGCN(LightningModule):
         self.K = A.shape[0]
         self.V = A.shape[1]
 
-        if hparams.edge_importance: #TODO rename
+        # TODO: check if masks are being trained
+        if hparams.use_edge_importance: 
             # initialise Masks for each stgcn layer as trainable parameter in network
             self.Masks = nn.ParameterList([nn.Parameter(torch.ones(A.shape)) for i in range(10)])
         else:
@@ -50,7 +58,6 @@ class L_STGCN(LightningModule):
 
         self.fc_layer = nn.Linear(256, hparams.nr_classes).float()
         self.softmax = nn.Softmax(dim=1)
-
 
     def forward(self, x):
         """
@@ -80,40 +87,50 @@ class L_STGCN(LightningModule):
         else:
             transforms = None
         
+        #TODO (rajmund): we shouldn't duplicate the datasets 
+        # proposal: check if network is in training mode, if it isn't, don't augment. should be an easy fix!
+        splitter = SplitDataset(self.hparams.metadata_file)
+        train_ind, val_ind, test_ind = splitter.split_by_subject()
+        
         self.train_dataset = KTHDataset(metadata_csv_path = self.hparams.metadata_file,
                                         numpy_data_folder = self.hparams.dataset_dir,
-                                        #filter = self.dataset_filters['train'], #TODO @rajmund: where do we construct this?
+                                        filter = train_ind,
                                         transforms = transforms,
                                         use_confidence_scores = False) #TODO @rajmund:  confidence scores?
 
         self.val_dataset   = KTHDataset(metadata_csv_path = self.hparams.metadata_file,
                                         numpy_data_folder = self.hparams.dataset_dir,
-                                        #filter = self.dataset_filters['val'], 
-                                        transforms = transforms,
+                                        filter = val_ind,
+                                        transforms = None, # No augmentation during validation!
                                         use_confidence_scores = False)
 
         self.test_dataset  = KTHDataset(metadata_csv_path = self.hparams.metadata_file,
                                         numpy_data_folder = self.hparams.dataset_dir,
-                                        #filter = self.dataset_filters['test'], 
+                                        filter = test_ind,
                                         transforms = None, # No augmentation during testing!
                                         use_confidence_scores = False) 
-        
+   
         self.train_sampler = RandomSampler(self.train_dataset)
+        # TODO: it's best practice to not shuffle the dataset for validation and testing
+        # but we'll use subsetsampler if we stop duplicating the datasets
+        """
         self.val_sampler = RandomSampler(self.val_dataset)
         self.test_sampler = RandomSampler(self.test_dataset)
-    
+        """
     def train_dataloader(self):
-       return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size,
-                         sampler=self.train_sampler, collate_fn=loopy_pad_collate_fn,
-                         num_workers=self.hparams.num_workers)
+        return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size,
+                          sampler=self.train_sampler, collate_fn=loopy_pad_collate_fn,
+                          num_workers=self.hparams.num_workers)
 
-    # def val_dataloader(self):
-    #    return DataLoader(self.val_dataset, batch_size=self.hparams.batch_size,
-    #                      sampler=self.val_sampler)
+    def val_dataloader(self):
+        return DataLoader(self.val_dataset, batch_size=self.hparams.batch_size,
+                          collate_fn=loopy_pad_collate_fn,
+                          num_workers=self.hparams.num_workers, shuffle=False)
 
-    # def test_dataloader(self):
-    #    return DataLoader(self.test_dataset, batch_size=self.hparams.batch_size,
-    #                      sampler=self.test_sampler)
+    def test_dataloader(self):
+        return DataLoader(self.test_dataset, batch_size=self.hparams.batch_size,
+                          collate_fn=loopy_pad_collate_fn,
+                          num_workers=self.hparams.num_workers, shuffle=False)
 
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -123,30 +140,40 @@ class L_STGCN(LightningModule):
         output = self.forward(x)
         loss = F.cross_entropy(output, y)
 
-        logs = {'loss' : loss}
-        return {'loss': loss, 'log': logs}
+        tensorboard_logs = {'loss' : loss}
+        return {'loss': loss, 'log': tensorboard_logs}
 
-    # def backward(self, use_amp, loss, optimizer, opt_idx):
-    #     if use_amp:
-    #         with amp.scale_loss(loss, optimizer) as scaled_loss:
-    #             scaled_loss.backward(retain_graph = self.retain_graph)
-    #     else:
-    #         loss.backward(retain_graph = self.retain_graph)
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        output = self.forward(x)
+        loss = F.cross_entropy(output, y)
+        return {'val_loss': loss}
+    
+    def validation_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        tensorboard_logs = {'val_loss': avg_loss}
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
-    #     self.retain_graph = False
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        return {'test_loss': F.cross_entropy(y_hat, y)}
+
+    def test_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
+        tensorboard_logs = {'test_loss': avg_loss}
+        return {'avg_test_loss': avg_loss, 'log': tensorboard_logs}
 
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--batch_size', type=int, default=2)
-        parser.add_argument('--lr', type=float, default=0.01)
-        parser.add_argument('--augment_data', type=bool, default=False)
-        parser.add_argument('--d', type=int, default=1)
-        parser.add_argument('--gamma', type=int, default=9)
-        parser.add_argument('--edge_importance', type=bool, default=True)
-        parser.add_argument('--partitioning', type=int, default=0) 
-        # Partitioning: 0 for unilabeling, 1 for distance and 2 for spatial
-
+        parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+        parser.add_argument('--augment_data', type=bool, default=False, help='perform random augmentation during training (as in the paper)')
+        parser.add_argument('--d', type=int, default=1, help='max distance in spatial neighbourhood')
+        parser.add_argument('--gamma', type=int, default=9, help='temporal kernel size')
+        parser.add_argument('--use_edge_importance', type=bool, default=True, help='if True, use learnable edge importance masks')
+        parser.add_argument('--partitioning', type=int, default=0, help='partitioning strategy (0 - unilabeling, 1 - distance labeling, 2 - spatial partitioning)') 
         #TODO rajmund: confidence score, optimizer type missing
         return parser
 
@@ -155,9 +182,9 @@ def build_argument_parser():
     # Add program level args
     parser.add_argument('--device', type=str, default=0)
     parser.add_argument('--nr_classes', type=int, default=6)
-    parser.add_argument('--metadata_file', type=str, default='../datasets/KTH_Action_Dataset/metadata.csv')
-    parser.add_argument('--dataset_dir', type=str, default='../datasets/KTH_Action_Dataset')
-    parser.add_argument('--C_in', type=int, default=2)
+    parser.add_argument('--metadata_file', type=str, default='../datasets/KTH_Action_Dataset/metadata.csv', help='path to the .csv file that contains the metadata')
+    parser.add_argument('--dataset_dir', type=str, default='../datasets/KTH_Action_Dataset', help='path to the dataset')
+    parser.add_argument('--C_in', type=int, default=2, help='number of channels in the data')
     parser.add_argument('--num_workers', type=int, default=1)
     parser = L_STGCN.add_model_specific_args(parser) # Add model-specific args
     parser = Trainer.add_argparse_args(parser) # Add ALL training-specific args
@@ -173,3 +200,4 @@ if __name__ == "__main__":
     #TODO: check Trainer args: gradient clipping, amp_level for 16-bit precision etc
     trainer = Trainer.from_argparse_args(hparams)
     trainer.fit(model)
+    trainer.test()

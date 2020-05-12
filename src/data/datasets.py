@@ -87,9 +87,9 @@ class KTHDataset(Dataset):
         Parameters:
             metadata_csv_path:  Path object of the .csv file which contains the metadata of each video
             numpy_data_folder:  Path object of the folder which contains the joint sequences as .npy files
-            filter: list of indices in metadata_csv file to keep in dataset. If None, entire dataset is kept.
+            filter:  list of indices in metadata_csv file to keep in dataset. If None, entire dataset is kept.
             apply_transforms:  whether to apply transforms to each retrieved point
-            use_confidence_scores: If False, trim the OpenPose confidence scores from the returned items
+            use_confidence_scores: if False, trim the OpenPose confidence scores from the returned items
         """
         self.numpy_data_folder = numpy_data_folder
         self.transforms = transforms
@@ -101,7 +101,7 @@ class KTHDataset(Dataset):
             metadata = metadata[metadata.index.isin(filter)]
             metadata = metadata.reset_index()
 
-        # # Drop the confidence score from OpenPose
+        # TODO Drop the confidence score from OpenPose
         # self.sequences = data['frames'].apply(lambda x: x[:,:,2])
 
         # convert label names to numbers and store in an ndarray
@@ -117,7 +117,7 @@ class KTHDataset(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-            print('Using a tensor!')
+            print('[KTHDataset] Using a tensor!')
 
         # check if slice is given or index
         if isinstance(idx, slice):
@@ -143,10 +143,8 @@ class KTHDataset(Dataset):
 
         # TODO (amrita) should we move this outside of class after dataloader has looped so that we can vectorise the matrix multiplication
         # apply data augmentation
-        # TODO (rajmund) randint doesn't do what you think it does
         if self.transforms is not None and random.randint(0, 1): # randomly apply augmentation
             joint_sequences = self.transforms(joint_sequences)
-
 
         if self.use_confidence_scores:
             print('[ERROR] Confidence scores are not yet supported! Exiting...')
