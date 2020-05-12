@@ -63,14 +63,11 @@ class L_STGCN(LightningModule):
             the results of classification
         """
         x = x.permute(0, 3, 1, 2) # (N, C_in, T, V)  
-        N, _, T, _ = x.shape
-
         x = self.conv(x) # (N, C_out, T, V)
-        
+        N, _, T, _ = x.shape
         # Global pooling. Can't be added to Sequential as the kernel size depends on x.
-        x = F.avg_pool2d(x, (T, self.V)) # (N, C_out, 1, 1)
-        x = x.view(N, self.C_out) # (N, C_out)
-        
+        x = F.avg_pool2d(x, (x.shape[2], self.V)) # (N, C_out, 1, 1)
+        x = x.view(N, x.shape[1]) # (N, C_out)
         x = self.fc_layer(x) # (N, nr_classes)
         # x = self.softmax(x) # (N, 1)
         # don't need softmax if we use cross entropy as cross entropy does softmax on pred implicitly
@@ -107,7 +104,8 @@ class L_STGCN(LightningModule):
     
     def train_dataloader(self):
        return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size,
-                         sampler=self.train_sampler, collate_fn=loopy_pad_collate_fn)
+                         sampler=self.train_sampler, collate_fn=loopy_pad_collate_fn,
+                         num_workers=self.hparams.num_workers)
 
     # def val_dataloader(self):
     #    return DataLoader(self.val_dataset, batch_size=self.hparams.batch_size,
@@ -128,14 +126,14 @@ class L_STGCN(LightningModule):
         logs = {'loss' : loss}
         return {'loss': loss, 'log': logs}
 
-    def backward(self, use_amp, loss, optimizer):
-        if use_amp:
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward(retain_graph = self.retain_graph)
-        else:
-            loss.backward(retain_graph = self.retain_graph)
+    # def backward(self, use_amp, loss, optimizer, opt_idx):
+    #     if use_amp:
+    #         with amp.scale_loss(loss, optimizer) as scaled_loss:
+    #             scaled_loss.backward(retain_graph = self.retain_graph)
+    #     else:
+    #         loss.backward(retain_graph = self.retain_graph)
 
-        self.retain_graph = False
+    #     self.retain_graph = False
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -152,16 +150,6 @@ class L_STGCN(LightningModule):
         #TODO rajmund: confidence score, optimizer type missing
         return parser
 
-# TODO @rajmund:  missing use_confidence_scores in parameters
-# training_config =
-# {
-#     'device': device,
-#     'dataset_dir': Path(dataset_dir),
-#     'metadata_file': Path(dataset_dir) / 'metadata.csv',
-#     'batch_size': 8,
-#     'n_epochs': 20
-# }
-
 def build_argument_parser():
     parser = ArgumentParser()
     # Add program level args
@@ -170,7 +158,7 @@ def build_argument_parser():
     parser.add_argument('--metadata_file', type=str, default='../datasets/KTH_Action_Dataset/metadata.csv')
     parser.add_argument('--dataset_dir', type=str, default='../datasets/KTH_Action_Dataset')
     parser.add_argument('--C_in', type=int, default=2)
-
+    parser.add_argument('--num_workers', type=int, default=1)
     parser = L_STGCN.add_model_specific_args(parser) # Add model-specific args
     parser = Trainer.add_argparse_args(parser) # Add ALL training-specific args
     

@@ -67,8 +67,8 @@ if __name__ == "__main__":
     # this should be read from a file or cmd line
     dataset_dir = '../../datasets/KTH_Action_Dataset'
     config = {
-        'dataset_dir': Path(dataset_dir),
-        'metadata_file': Path(dataset_dir) / 'metadata.csv',
+        'dataset_dir': dataset_dir,
+        'metadata_file': dataset_dir + '/metadata.csv',
         'batch_size': 32,
         'n_epochs': 20,
         'nr_classes': 6,
