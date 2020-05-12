@@ -4,7 +4,8 @@ import os
 def calculate_distance(p1, p2):
     return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
-def calculate_distances(V=25, dataset_dir='../datasets/KTH_Action_Dataset', output_file='../datasets/KTH_Action_Dataset/dist'):
+def calculate_distances(V=25, dataset_dir='../datasets/KTH_Action_Dataset', \
+    output_file='../datasets/KTH_Action_Dataset/dist/distances.npy'):
     """
     Calculate average distances from the gravity center.
 
