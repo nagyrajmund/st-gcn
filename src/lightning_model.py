@@ -24,7 +24,7 @@ class L_STGCN(LightningModule):
         self.dataset_filters = dataset_filters
 
         temporal_padding = (hparams.gamma - 1) // 2
-        A = torch.Tensor(get_normalized_adjacency_matrices(hparams.partitioning, hparams.d))
+        A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d)
         self.K = A.shape[0]
         self.V = A.shape[1]
 

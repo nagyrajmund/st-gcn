@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 from enum import IntEnum
 
 from data.util import adj_list, nr_of_joints
@@ -7,8 +7,6 @@ class Strategy(IntEnum):
     UNI_LABELING = 0
     DISTANCE = 1
     SPATIAL_CONFIGURATION = 2
-
-# TODO @livia incorporate intra-frame connections?
 
 def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
     """
@@ -19,11 +17,11 @@ def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
         d:  distance
 
     Returns:
-        list of adjacency matrices (partitioned)
+        list of partitioned adjacency matrices (matrices are stored as torch.Tensor)
     """
 
     if strat == Strategy.UNI_LABELING:
-        A = np.zeros((nr_of_joints, nr_of_joints), dtype=int) # TODO turn it into boolean array?
+        A = torch.zeros((nr_of_joints, nr_of_joints))
 
         for i in range(nr_of_joints):
             # For each joint, do a (limited) DFS.
@@ -48,12 +46,12 @@ def create_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1):
 
     elif strat == Strategy.DISTANCE:
 
-        I = np.eye(nr_of_joints, dtype=int) # TODO turn it into boolean array?
+        I = torch.eye(nr_of_joints)
         matrices = [I]
 
+        # Initialize empty adjacency matrices
         for _ in range(d):
-            A = np.zeros((nr_of_joints, nr_of_joints), dtype=int) # TODO turn it into boolean array?
-            matrices.append(A)
+            matrices.append(torch.zeros((nr_of_joints, nr_of_joints)))
 
         for i in range(nr_of_joints):
             # For each joint, do a (limited) DFS.
@@ -86,19 +84,24 @@ def normalize(matrices, expo=-1/2, alpha = 0.001):
     Normalize adjacency matrices.
 
     Parameters:
-        matrices:  original adjacency matrices
+        matrices:  original adjacency matrices (as list of tensors)
         expo:  exponent (optional)
         alpha:  additional parameter for avoiding empty rows (optional)
 
     Returns:
-        normalized adjacency matrices as a numpy array
+        normalized adjacency matrices as a single torch.Tensor
     """
 
-    normalized = []
-    for A in matrices:
-        Lambda_exp = (np.diag(np.sum(A, axis=1)) + alpha) ** expo
-        normalized.append(Lambda_exp @ A @ Lambda_exp)
-    return np.asarray(normalized)
+    nr_matrices = len(matrices) # Number of tensors
+    first_mat = matrices[0] # Get size of first tensor
+    normalized = torch.Tensor(nr_matrices, first_mat.shape[0], first_mat.shape[1])
+
+    for i in range(nr_matrices):
+        A = matrices[i]
+        Lambda_exp = (torch.diag(torch.sum(A, axis=1)) + alpha) ** expo
+        normalized[i, :, :] = Lambda_exp @ A @ Lambda_exp
+
+    return normalized
 
 def get_normalized_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1, alpha = 0.001):
     """
@@ -108,6 +111,9 @@ def get_normalized_adjacency_matrices(strat = Strategy.UNI_LABELING, d = 1, alph
         strat:  partitioning strategy (optional)
         d:  distance (optional)
         alpha:  additional parameter for avoiding empty rows (optional)
+
+    Returns:
+        normalized adjacency matrices as a single torch.Tensor
     """
 
     return normalize(create_adjacency_matrices(strat, d), alpha = alpha)

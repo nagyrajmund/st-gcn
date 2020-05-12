@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from data import adjacency as adj
 import torch
 
-
 class STGCN(nn.Module):
     """
     Network containing all the layers needed for spatio-temporal graph convolution.
@@ -25,7 +24,7 @@ class STGCN(nn.Module):
 
         self.nr_classes = nr_classes
         temporal_padding = (gamma - 1) // 2
-        A = torch.Tensor(adj.get_normalized_adjacency_matrices(strat, d))
+        A = adj.get_normalized_adjacency_matrices(strat, d)
         self.K = A.shape[0]
         self.V = A.shape[1]
         self.C_in = C_in

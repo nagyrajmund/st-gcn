@@ -84,7 +84,7 @@ class SpatialConv(nn.Module):
         super().__init__()
         self.C_in = C_in
         self.C_out = C_out
-        self.A = nn.Parameter(torch.Tensor(A).float()) # TODO parameter or register buffer? https://discuss.pytorch.org/t/resolved-runtimeerror-expected-device-cpu-and-dtype-float-but-got-device-cuda-0-and-dtype-float/54783/18
+        self.A = nn.Parameter(A.float()) # TODO parameter or register buffer? https://discuss.pytorch.org/t/resolved-runtimeerror-expected-device-cpu-and-dtype-float-but-got-device-cuda-0-and-dtype-float/54783/18
         self.K = self.A.shape[0]
         self.V = self.A.shape[1]
         # Filter size is 1x1 (so we that don't reduce the input size), but the
