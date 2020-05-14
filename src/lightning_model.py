@@ -3,6 +3,7 @@ sys.path.append('./')
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer, Callback
+from pytorch_lightning.callbacks import EarlyStopping
 from data.datasets import KTHDataset, SplitDataset
 from data.util import loopy_pad_collate_fn
 from data.augmentation import augment_data
@@ -20,6 +21,14 @@ from network.st_graphconv import SpatialTemporalConv
 #     def on_train_end(self, trainer):
 #         print('Saving Confusion matrix')
 #         trainer.
+
+early_stop_callback = EarlyStopping(
+    monitor='val_loss',
+    min_delta=0.00,
+    patience=1,
+    verbose=False,
+    mode='min'
+)
 
 class L_STGCN(LightningModule):
     """
@@ -107,6 +116,7 @@ class L_STGCN(LightningModule):
             transforms = augment_data
         else:
             transforms = None
+
 
         #TODO (rajmund): we shouldn't duplicate the datasets
         # proposal: check if network is in training mode, if it isn't, don't augment. should be an easy fix!
@@ -204,7 +214,7 @@ class L_STGCN(LightningModule):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         avg_accuracy = sum([x['acc'] for x in outputs])/len(outputs)
         tensorboard_logs = {'val_loss': avg_loss, 'val_acc': avg_accuracy}
-        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+        return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
 
     def test_step(self, batch, batch_idx):
@@ -227,14 +237,18 @@ class L_STGCN(LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--batch_size', type=int, default=2)
         parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+        # omit --augment_data if you don't want to use edge importance
         parser.add_argument('--augment_data', type=bool, default=False, help='perform random augmentation during training (as in the paper)')
         parser.add_argument('--d', type=int, default=1, help='max distance in spatial neighbourhood')
         parser.add_argument('--gamma', type=int, default=9, help='temporal kernel size')
-        parser.add_argument('--use_edge_importance', type=bool, default=True, help='if True, use learnable edge importance masks')
+        # omit --use_edge_importance if you don't want to use edge importance
+        parser.add_argument('--use_edge_importance', type=bool, default=False, help='if passed in, uses learnable edge importance masks')
         parser.add_argument('--partitioning', type=int, default=0, help='partitioning strategy (0 - unilabeling, 1 - distance labeling, 2 - spatial partitioning)')
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-view, 2 - ordinary stratified')
         parser.add_argument('--train_views', type=list, default=["d1", "d2"], help='views to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_views', type=list, default=["d3"], help='views to put into the training set (list of any from d1,d2,d3,d4)')
+        # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
+
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
         #TODO rajmund: confidence score, optimizer type missing
         return parser
@@ -263,5 +277,6 @@ if __name__ == "__main__":
     trainer = Trainer.from_argparse_args(hparams)
     trainer.fit(model)
     trainer.test()
+
 
 
