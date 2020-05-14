@@ -196,12 +196,6 @@ class L_STGCN(LightningModule):
         return {'loss': loss, 'acc': val_acc}
 
 
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
-        avg_accuracy = sum([x['acc'] for x in outputs])/len(outputs)
-        tensorboard_logs = {'val_loss': avg_loss, 'val_acc': avg_accuracy}
-        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
-
     def validation_step(self, batch, batch_idx):
         x, y = batch
         output = self.forward(x)
