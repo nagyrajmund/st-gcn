@@ -19,14 +19,23 @@ class SplitDataset:
     def _get_indices(self, train, val, test):
         return list(train.index.values), list(val.index.values), list(test.index.values)
 
-    def split_by_subject(self, train=15, val=5, test=5):
+    def split_by_subject(self, train=15, val=5, test=5, randomise_split=False):
         ''' returns: indices corresponding to train and test, with train/(train+test) subjects in the train set,
             test/(train+test) subjects in the test set.
+            randomise_split: boolean, if true, subjects are randomly allocated to train, val, test set
         '''
+        assert train + val + test == 25
         subjects = list(set(self.metadata['subject']))
+        subjects.sort()
         # get subjects in train, val and test sets
-        train_subjects, val_test_subjects = train_test_split(subjects, train_size=train/(train+val+test))
-        val_subjects, test_subjects = train_test_split(val_test_subjects, train_size=val/(val+test))
+
+        if randomise_split: # randomise split of subjects into train, val, test set
+            train_subjects, val_test_subjects = train_test_split(subjects, train_size=train/(train+val+test))
+            val_subjects, test_subjects = train_test_split(val_test_subjects, train_size=val/(val+test))
+        else:
+            train_subjects = subjects[:train]
+            val_subjects = subjects[train:train + val]
+            test_subjects = subjects[train + val:]
 
         train = self.metadata[self.metadata['subject'].isin(train_subjects)]
         val = self.metadata[self.metadata['subject'].isin(val_subjects)]
@@ -178,6 +187,7 @@ if __name__ == "__main__":
     splitDataset = SplitDataset(metadata_file)
     # train_indices, val_indices, test_indices = splitDataset.split_by_view(['d1', 'd2'], ['d3'])
     train_indices, val_indices, test_indices = splitDataset.split_by_subject()
+    input()
     train_dataset = KTHDataset(metadata_file, dataset_dir, filter=train_indices, use_confidence_scores=False, apply_transforms=True)
     val_dataset = KTHDataset(metadata_file, dataset_dir, filter=val_indices, use_confidence_scores=False, apply_transforms=False)
     test_dataset = KTHDataset(metadata_file, dataset_dir, filter=test_indices, use_confidence_scores=False, apply_transforms=False)
