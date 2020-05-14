@@ -229,7 +229,7 @@ class L_STGCN(LightningModule):
         parser.add_argument('--gamma', type=int, default=9, help='temporal kernel size')
         # omit --use_edge_importance if you don't want to use edge importance
         parser.add_argument('--use_edge_importance', type=bool, default=False, help='if passed in, uses learnable edge importance masks')
-        parser.add_argument('--partitioning', type=int, default=0, help='partitioning strategy (0 - unilabeling, 1 - distance labeling, 2 - spatial partitioning)')
+        parser.add_argument('--partitioning', type=int, default=0, help='partitioning strategy (0 - unilabeling, 1 - distance labeling, 2 - spatial partitioning, 3 - symmetrical-distance labeling)')
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
