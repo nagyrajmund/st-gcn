@@ -18,7 +18,7 @@ def augment_data(sequences):
 
     # choose 3 out of 4 transformations to apply
     transformations = ['rotation', 'translation', 'scaling', 'flip']
-    transformations_to_apply = np.random.choice(transformations, 3)
+    transformations_to_apply = np.random.choice(transformations, 2)
     T = np.eye((3))
 
 

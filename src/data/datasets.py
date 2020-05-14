@@ -48,13 +48,13 @@ class SplitDataset:
         return train_indices, val_indices, test_indices
 
 
-    def split_by_view(self, train_views, val_views):
+    def split_by_scenario(self, train_scenarios, val_scenarios):
         ''' returns: indices corresponding to train and test, with as close to train/(train+test) subjects in the train set as possible,
             test/(train+test) subjects in the test set.
         '''
-        train = self.metadata[self.metadata['scenario'].isin(train_views)]
-        val = self.metadata[self.metadata['scenario'].isin(val_views)]
-        test = self.metadata[~self.metadata['scenario'].isin(val_views+train_views)]
+        train = self.metadata[self.metadata['scenario'].isin(train_scenarios)]
+        val = self.metadata[self.metadata['scenario'].isin(val_scenarios)]
+        test = self.metadata[~self.metadata['scenario'].isin(val_scenarios+train_scenarios)]
 
         train_indices, val_indices, test_indices = self._get_indices(train, val, test)
 
@@ -185,9 +185,8 @@ if __name__ == "__main__":
 
     ''' Train, val, test split'''
     splitDataset = SplitDataset(metadata_file)
-    # train_indices, val_indices, test_indices = splitDataset.split_by_view(['d1', 'd2'], ['d3'])
+    # train_indices, val_indices, test_indices = splitDataset.split_by_scenario(['d1', 'd2'], ['d3'])
     train_indices, val_indices, test_indices = splitDataset.split_by_subject()
-    input()
     train_dataset = KTHDataset(metadata_file, dataset_dir, filter=train_indices, use_confidence_scores=False, apply_transforms=True)
     val_dataset = KTHDataset(metadata_file, dataset_dir, filter=val_indices, use_confidence_scores=False, apply_transforms=False)
     test_dataset = KTHDataset(metadata_file, dataset_dir, filter=test_indices, use_confidence_scores=False, apply_transforms=False)

@@ -125,8 +125,8 @@ class L_STGCN(LightningModule):
         ''' decide how to split the data for train, val, test set '''
         if self.hparams.data_split == 0: # cross-subject training, default
             train_ind, val_ind, test_ind = splitter.split_by_subject()
-        elif self.hparams.data_split == 1: # cross-view training
-            train_ind, val_ind, test_ind = splitter.split_by_view(self.hparams.train_views, self.hparams.val_views)
+        elif self.hparams.data_split == 1: # cross-scenario training
+            train_ind, val_ind, test_ind = splitter.split_by_scenario(self.hparams.train_scenarios, self.hparams.val_scenarios)
         else: # stratified split
             train_ind, val_ind, test_ind = splitter.split()
 
@@ -196,14 +196,6 @@ class L_STGCN(LightningModule):
         return {'loss': loss, 'acc': val_acc}
 
 
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        output = self.forward(x)
-        loss = F.cross_entropy(output, y)
-        val_acc = self.compute_accuracy(output, y)
-        return {'loss': loss, 'acc': val_acc}
-
-
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         avg_accuracy = sum([x['acc'] for x in outputs])/len(outputs)
@@ -238,9 +230,9 @@ class L_STGCN(LightningModule):
         # omit --use_edge_importance if you don't want to use edge importance
         parser.add_argument('--use_edge_importance', type=bool, default=False, help='if passed in, uses learnable edge importance masks')
         parser.add_argument('--partitioning', type=int, default=0, help='partitioning strategy (0 - unilabeling, 1 - distance labeling, 2 - spatial partitioning)')
-        parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-view, 2 - ordinary stratified')
-        parser.add_argument('--train_views', type=list, default=["d1", "d2"], help='views to put into the training set (list of any from d1,d2,d3,d4)')
-        parser.add_argument('--val_views', type=list, default=["d3"], help='views to put into the training set (list of any from d1,d2,d3,d4)')
+        parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
+        parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
+        parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
 
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
