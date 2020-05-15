@@ -231,7 +231,7 @@ class L_STGCN(LightningModule):
         parser.add_argument('--augment_data', type=bool, default=False, help='if passed in, performs random augmentation during training (as in the paper)')
         parser.add_argument('--d', type=int, default=1, help='max distance in spatial neighbourhood')
         parser.add_argument('--gamma', type=int, default=9, help='temporal kernel size')
-        parser.add_argument('--dropout_rate', type=int, default=0, help='dropout thresh')
+        parser.add_argument('--dropout_rate', type=float, default=0, help='dropout thresh')
         # edge importance args
         parser.add_argument('--use_edge_importance', type=bool, default=False, help='if passed in, uses learnable edge importance masks')
         parser.add_argument('--max_mask_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")
