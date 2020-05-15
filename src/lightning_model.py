@@ -241,7 +241,7 @@ class L_STGCN(LightningModule):
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
-        parser.add_argument('--mask_max_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")
+        parser.add_argument('--max_mask_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")
         # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
 
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
