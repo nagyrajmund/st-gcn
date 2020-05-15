@@ -54,9 +54,16 @@ class L_STGCN(LightningModule):
         # TODO: check if masks are being trained
         if hparams.use_edge_importance:
             # initialise Masks for each stgcn layer as trainable parameter in network
-            self.Masks = nn.ParameterList([nn.Parameter(torch.ones(A.shape)) for i in range(10)])
+            # TODO: don't hardcode 10, use numlayers
+            # TODO: this is a bit spaghetti, add a comment or create a function for this
+            jitters = [ 2 * (torch.randn_like(A) - 0.5) * hparams.max_mask_jitter for i in range(10)]
+            self.Masks = nn.ParameterList([nn.Parameter( jitters[i] + torch.ones(A.shape)) for i in range(10)])
         else:
             self.Masks = [torch.ones(A.shape) for i in range(10)] # not trainable
+        if hparams.use_edge_importance:
+            print('++++++++++++++++++++++++++++++++++++++++++++++++++')
+        else:
+            print('--------------------------------------------------')
 
         # Build the network
         self.conv = nn.Sequential(
@@ -152,13 +159,13 @@ class L_STGCN(LightningModule):
 
         self.train_sampler = RandomSampler(self.train_dataset)
         # TODO: it's best practice to not shuffle the dataset for validation and testing
-        # but we'll use subsetsampler if we stop duplicating the datasets
+        # we'll use subsetsampler when stop duplicating the datasets
         """
         self.val_sampler = RandomSampler(self.val_dataset)
         self.test_sampler = RandomSampler(self.test_dataset)
         """
 
-    def train_dataloader(self):
+    def train_dataloader(self):     
         return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size,
                           sampler=self.train_sampler, collate_fn=loopy_pad_collate_fn,
                           num_workers=self.hparams.num_workers)
@@ -201,11 +208,6 @@ class L_STGCN(LightningModule):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         avg_accuracy = sum([x['acc'] for x in outputs])/len(outputs)
         tensorboard_logs = {'val_loss': avg_loss, 'val_acc': avg_accuracy}
-        for mask in self.Masks:
-            if not torch.all(torch.eq(mask.cpu(), self.ones.cpu())):
-                print('masks not equal equal')
-                return
-#             print(torch.all(torch.eq(mask.cpu(), self.ones.cpu())))
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
 
@@ -239,6 +241,7 @@ class L_STGCN(LightningModule):
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
+        parser.add_argument('--mask_max_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")
         # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
 
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
