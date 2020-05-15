@@ -49,7 +49,6 @@ class L_STGCN(LightningModule):
         A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d, distance_file=hparams.distance_file)
         self.K = A.shape[0]
         self.V = A.shape[1]
-        self.ones = torch.ones(A.shape) # TODO remove for testing purposes only
 
         # TODO: check if masks are being trained
         if hparams.use_edge_importance:
@@ -60,23 +59,21 @@ class L_STGCN(LightningModule):
             self.Masks = nn.ParameterList([nn.Parameter( jitters[i] + torch.ones(A.shape)) for i in range(10)])
         else:
             self.Masks = [torch.ones(A.shape) for i in range(10)] # not trainable
-        if hparams.use_edge_importance:
-            print('++++++++++++++++++++++++++++++++++++++++++++++++++')
-        else:
-            print('--------------------------------------------------')
+
+        residual = self.hparams.residual
 
         # Build the network
         self.conv = nn.Sequential(
-            SpatialTemporalConv(hparams.C_in, 64, A*self.Masks[0], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv( 64,  64, A*self.Masks[1], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv( 64,  64, A*self.Masks[2], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv( 64,  64, A*self.Masks[3], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv( 64, 128, A*self.Masks[4], hparams.gamma, 2, temporal_padding),
-            SpatialTemporalConv(128, 128, A*self.Masks[5], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv(128, 128, A*self.Masks[6], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv(128, 256, A*self.Masks[7], hparams.gamma, 2, temporal_padding),
-            SpatialTemporalConv(256, 256, A*self.Masks[8], hparams.gamma, 1, temporal_padding),
-            SpatialTemporalConv(256, 256, A*self.Masks[9], hparams.gamma, 1, temporal_padding)
+            SpatialTemporalConv(hparams.C_in, 64, A*self.Masks[0], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv( 64,  64, A*self.Masks[1], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv( 64,  64, A*self.Masks[2], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv( 64,  64, A*self.Masks[3], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv( 64, 128, A*self.Masks[4], hparams.gamma, 2, temporal_padding, residual=residual),
+            SpatialTemporalConv(128, 128, A*self.Masks[5], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv(128, 128, A*self.Masks[6], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv(128, 256, A*self.Masks[7], hparams.gamma, 2, temporal_padding, residual=residual),
+            SpatialTemporalConv(256, 256, A*self.Masks[8], hparams.gamma, 1, temporal_padding, residual=residual),
+            SpatialTemporalConv(256, 256, A*self.Masks[9], hparams.gamma, 1, temporal_padding, residual=residual)
         ).float()
 
         self.fc_layer = nn.Linear(256, hparams.nr_classes).float()
@@ -231,19 +228,21 @@ class L_STGCN(LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--batch_size', type=int, default=2)
         parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
-        # omit --augment_data if you don't want to use edge importance
-        parser.add_argument('--augment_data', type=bool, default=False, help='perform random augmentation during training (as in the paper)')
+        parser.add_argument('--augment_data', type=bool, default=False, help='if passed in, performs random augmentation during training (as in the paper)')
         parser.add_argument('--d', type=int, default=1, help='max distance in spatial neighbourhood')
         parser.add_argument('--gamma', type=int, default=9, help='temporal kernel size')
-        # omit --use_edge_importance if you don't want to use edge importance
+        # edge importance args
         parser.add_argument('--use_edge_importance', type=bool, default=False, help='if passed in, uses learnable edge importance masks')
+        parser.add_argument('--max_mask_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")
+
         parser.add_argument('--partitioning', type=int, default=0, help='partitioning strategy (0 - unilabeling, 1 - distance labeling, 2 - spatial partitioning, 3 - symmetrical-distance labeling)')
+        parser.add_argument('--residual', type=bool, default=False, help='if passed in, uses residual block')
+        # data split args
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
-        parser.add_argument('--max_mask_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")
-        # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
 
+        # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
         #TODO rajmund: confidence score, optimizer type missing
         return parser

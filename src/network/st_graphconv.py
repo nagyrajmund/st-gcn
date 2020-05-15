@@ -7,7 +7,7 @@ class SpatialTemporalConv(nn.Module):
     """
 
     # TODO @livia Not sure that some layers are in the correct order? (Batch normalization, ReLU)
-    def __init__(self, C_in, C_out, A, gamma, temporal_stride, temporal_padding, dropout_rate=0.5):
+    def __init__(self, C_in, C_out, A, gamma, temporal_stride, temporal_padding, dropout_rate=0.5, residual=False):
         """
         Parameters:
             C_in:  number of input channels
@@ -17,9 +17,18 @@ class SpatialTemporalConv(nn.Module):
             temporal_stride:  stride for the temporal layer
             temporal_padding:  padding for the temporal layer
             dropout_rate:  probability of an element to be zeroed (optional)
+            residual: whether to apply residual block
         """
 
         super().__init__()
+
+        if residual:
+            if C_in == C_out and temporal_stride == 1: # shapes match
+                self.apply_residual = lambda x: x
+            else:
+                self.apply_residual = nn.Conv2d(C_in, C_out, kernel_size=1, stride=(temporal_stride, 1))
+
+        self.residual = residual
 
         # Batch normalization
         # TODO Is it okay to use this here? According to the paper,
@@ -35,7 +44,7 @@ class SpatialTemporalConv(nn.Module):
             nn.Conv2d(C_out, C_out, kernel_size=temporal_kernel_size, stride=(temporal_stride, 1),
                   padding=(temporal_padding, 0))
 
-        # Batch normalization
+        # Batch normalization after temporal convolution (or before temporal convolution if residual is used)
         self.batch_n_2 = nn.BatchNorm2d(C_out)
 
         # Activation
@@ -44,6 +53,31 @@ class SpatialTemporalConv(nn.Module):
         # Dropout
         # "And we randomly dropout the features at 0.5 probability after each STGCN unit to avoid overfitting."
         self.dropout = nn.Dropout(dropout_rate, inplace = True)
+
+    def residual_block(self, f_in):
+        '''
+        Performs full-preactivation residual block as follows:
+        BN -> activation -> Weights -> BN -> activation -> Weights
+        See (e) full pre-activation in https://towardsdatascience.com/residual-blocks-building-blocks-of-resnet-fd90ca15d6ec
+
+        Parameters:
+            f_in: input of size (N, C_in, T, V)
+        Returns:
+            output of residual block after full-preactivation
+        '''
+        res = f_in.clone()
+        # first set of pre-activation
+        f_in = self.batch_n(f_in.float())
+        f_act = self.relu(f_in.clone())
+        f_out = self.spatialConv(f_act)
+        # second set of pre-activation
+        f_in = self.batch_n_2(f_out.float())
+        f_act = self.relu(f_in.clone())
+        f_out = self.temporalConv(f_act) # (N, C_out, T, V)
+        # Add residual
+        f_out += self.apply_residual(res.float())
+        return f_out
+
 
     def forward(self, f_in):
         """
@@ -55,10 +89,13 @@ class SpatialTemporalConv(nn.Module):
         Returns:
             output of the ST-GCN unit
         """
+        if self.residual:
+            f_out = self.residual_block(f_in)
+        else:
+            f_in = self.batch_n(f_in.float())
+            f_out = self.temporalConv(self.spatialConv(f_in)) # (N, C_out, T, V)
+            f_out = self.batch_n_2(f_out)
 
-        f_in = self.batch_n(f_in.float())
-        f_out = self.temporalConv(self.spatialConv(f_in)) # (N, C_out, T, V)
-        f_out = self.batch_n_2(f_out)
         # relu and dropout are inplace operations so have to clone input and rename variables to allow variables \
         # to be accessible for backward algorithm.
         # we don't set inplace = False as this typically decreases performance
