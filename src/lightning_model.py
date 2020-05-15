@@ -49,6 +49,7 @@ class L_STGCN(LightningModule):
         A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d, distance_file=hparams.distance_file)
         self.K = A.shape[0]
         self.V = A.shape[1]
+        self.ones = torch.ones(A.shape) # TODO remove for testing purposes only
 
         # TODO: check if masks are being trained
         if hparams.use_edge_importance:
@@ -200,6 +201,11 @@ class L_STGCN(LightningModule):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         avg_accuracy = sum([x['acc'] for x in outputs])/len(outputs)
         tensorboard_logs = {'val_loss': avg_loss, 'val_acc': avg_accuracy}
+        for mask in self.Masks:
+            if not torch.all(torch.eq(mask.cpu(), self.ones.cpu())):
+                print('masks not equal equal')
+                return
+#             print(torch.all(torch.eq(mask.cpu(), self.ones.cpu())))
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
 
