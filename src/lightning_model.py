@@ -61,19 +61,20 @@ class L_STGCN(LightningModule):
             self.Masks = [torch.ones(A.shape) for i in range(10)] # not trainable
 
         residual = self.hparams.residual
+        dropout_rate = self.hparams.dropout_rate
 
         # Build the network
         self.conv = nn.Sequential(
-            SpatialTemporalConv(hparams.C_in, 64, A*self.Masks[0], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv( 64,  64, A*self.Masks[1], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv( 64,  64, A*self.Masks[2], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv( 64,  64, A*self.Masks[3], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv( 64, 128, A*self.Masks[4], hparams.gamma, 2, temporal_padding, residual=residual),
-            SpatialTemporalConv(128, 128, A*self.Masks[5], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv(128, 128, A*self.Masks[6], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv(128, 256, A*self.Masks[7], hparams.gamma, 2, temporal_padding, residual=residual),
-            SpatialTemporalConv(256, 256, A*self.Masks[8], hparams.gamma, 1, temporal_padding, residual=residual),
-            SpatialTemporalConv(256, 256, A*self.Masks[9], hparams.gamma, 1, temporal_padding, residual=residual)
+            SpatialTemporalConv(hparams.C_in, 64, A*self.Masks[0], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv( 64,  64, A*self.Masks[1], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv( 64,  64, A*self.Masks[2], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv( 64,  64, A*self.Masks[3], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv( 64, 128, A*self.Masks[4], hparams.gamma, 2, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv(128, 128, A*self.Masks[5], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv(128, 128, A*self.Masks[6], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv(128, 256, A*self.Masks[7], hparams.gamma, 2, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv(256, 256, A*self.Masks[8], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual),
+            SpatialTemporalConv(256, 256, A*self.Masks[9], hparams.gamma, 1, temporal_padding, dropout_rate=dropout_rate, residual=residual)
         ).float()
 
         self.fc_layer = nn.Linear(256, hparams.nr_classes).float()
@@ -122,7 +123,6 @@ class L_STGCN(LightningModule):
         else:
             transforms = None
 
-
         #TODO (rajmund): we shouldn't duplicate the datasets
         # proposal: check if network is in training mode, if it isn't, don't augment. should be an easy fix!
         splitter = SplitDataset(self.hparams.metadata_file)
@@ -162,7 +162,7 @@ class L_STGCN(LightningModule):
         self.test_sampler = RandomSampler(self.test_dataset)
         """
 
-    def train_dataloader(self):     
+    def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size,
                           sampler=self.train_sampler, collate_fn=loopy_pad_collate_fn,
                           num_workers=self.hparams.num_workers)
@@ -231,6 +231,7 @@ class L_STGCN(LightningModule):
         parser.add_argument('--augment_data', type=bool, default=False, help='if passed in, performs random augmentation during training (as in the paper)')
         parser.add_argument('--d', type=int, default=1, help='max distance in spatial neighbourhood')
         parser.add_argument('--gamma', type=int, default=9, help='temporal kernel size')
+        parser.add_argument('--dropout_rate', type=int, default=0, help='dropout thresh')
         # edge importance args
         parser.add_argument('--use_edge_importance', type=bool, default=False, help='if passed in, uses learnable edge importance masks')
         parser.add_argument('--max_mask_jitter', type=float, default=0.001, help="maximal amount of random perturbation added to the initial edge importance masks")

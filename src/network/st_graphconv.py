@@ -52,7 +52,12 @@ class SpatialTemporalConv(nn.Module):
 
         # Dropout
         # "And we randomly dropout the features at 0.5 probability after each STGCN unit to avoid overfitting."
-        self.dropout = nn.Dropout(dropout_rate, inplace = True)
+        if dropout_rate != 0:
+            print('Using dropout')
+            self.dropout = nn.Dropout(dropout_rate, inplace = True)
+        else:
+            print('Not using dropout')
+            self.dropout = None
 
     def residual_block(self, f_in):
         '''
@@ -100,6 +105,8 @@ class SpatialTemporalConv(nn.Module):
         # to be accessible for backward algorithm.
         # we don't set inplace = False as this typically decreases performance
         f_act = self.relu(f_out.clone())
+        if self.dropout is None:
+            return f_act
         f_drop = self.dropout(f_act.clone())
         return f_drop
 
