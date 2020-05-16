@@ -47,16 +47,16 @@ class L_STGCN(LightningModule):
         self.K = A.shape[0]
         self.V = A.shape[1]
         self.nr_classes = hparams.nr_classes
+        self.n_layers = 10
 
         # TODO: check if masks are being trained
         if hparams.use_edge_importance:
             # initialise Masks for each stgcn layer as trainable parameter in network
-            # TODO: don't hardcode 10, use numlayers
             # TODO: this is a bit spaghetti, add a comment or create a function for this
-            jitters = [2 * (torch.randn_like(A) - 0.5) * hparams.max_mask_jitter for i in range(10)]
-            self.Masks = nn.ParameterList([nn.Parameter(jitters[i] + torch.ones(A.shape)) for i in range(10)])
+            jitters = [ 2 * (torch.randn_like(A) - 0.5) * hparams.max_mask_jitter for i in range(self.n_layers)]
+            self.Masks = nn.ParameterList([nn.Parameter( jitters[i] + torch.ones(A.shape)) for i in range(self.n_layers)])
         else:
-            self.Masks = [torch.ones(A.shape) for i in range(10)]  # not trainable
+            self.Masks = [torch.ones(A.shape) for i in range(self.n_layers)] # not trainable
 
         residual = self.hparams.residual
         dropout_rate = self.hparams.dropout_rate
@@ -232,13 +232,6 @@ class L_STGCN(LightningModule):
         self.logger.experiment.add_figure( \
             "Confusion matrix for validation set", fig, global_step=None, close=True, walltime=None)
 
-    def on_test_end(self):
-        print('Saving Confusion matrix')
-        confusion_matrix = self.compute_conf_mat(self.test_dataloader())
-        fig = plot_conf_matrix(confusion_matrix)
-        self.logger.experiment.add_figure( \
-            "Confusion matrix for test set", fig, global_step=None, close=True, walltime=None)
-
     def test_step(self, batch, batch_idx):
         x, y = batch
         output = self(x)
@@ -251,6 +244,13 @@ class L_STGCN(LightningModule):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         avg_accuracy = sum([x['acc'] for x in outputs]) / len(outputs)
         tensorboard_logs = {'avg_test_loss': avg_loss, 'avg_test_acc': avg_accuracy}
+
+        print('Saving Confusion matrix')
+        confusion_matrix = self.compute_conf_mat(self.test_dataloader())
+        fig = plot_conf_matrix(confusion_matrix)
+        self.logger.experiment.add_figure( \
+            "Confusion matrix for test set", fig, global_step=None, close=True, walltime=None)
+
         return {'avg_test_loss': avg_loss, 'log': tensorboard_logs}
 
     @staticmethod
@@ -323,6 +323,5 @@ if __name__ == "__main__":
         trainer = Trainer.from_argparse_args(hparams)
     trainer.fit(model)
     trainer.test()
-    model.on_test_end()
 
 

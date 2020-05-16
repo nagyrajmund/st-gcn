@@ -1,5 +1,3 @@
-# TODO: this should be added to every runnable script to make imports work
-# Eventually we can use python
 import sys
 sys.path.append('../')
 
@@ -10,6 +8,8 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 from data import util
 
+# file @deprecated
+
 def train_network(config):
     """
     Initialise dataset and network.
@@ -18,16 +18,22 @@ def train_network(config):
         config:  map containing relevant parameters
     """
 
-    # TODO tidy config
-    dataset = KTHDataset(config['metadata_file'], config['dataset_dir'], use_confidence_scores=False)
-    dataloader = DataLoader(dataset, batch_size=config['batch_size'], sampler=config['sampler'],
-                            collate_fn=util.loopy_pad_collate_fn)
-    model = stgcn.STGCN(config['C_in'], config['gamma'], config['nr_classes'], edge_importance=config['edge_importance_weighting'])
+    dataset = KTHDataset(config['metadata_file'],
+                        config['dataset_dir'],
+                        use_confidence_scores=False)
+    dataloader = DataLoader(dataset,
+                        batch_size=config['batch_size'],
+                        sampler=config['sampler'],
+                        collate_fn=util.loopy_pad_collate_fn)
+    model = stgcn.STGCN(config['C_in'],
+                        config['gamma'],
+                        config['nr_classes'],
+                        edge_importance=config['edge_importance_weighting'])
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-    autograd.set_detect_anomaly(True) # enable anomaly detection TODO @amrita remove for debugging purposes only
+    autograd.set_detect_anomaly(True) # enable anomaly detection
 
     # train
     for epoch in range(config['n_epochs']):
@@ -42,8 +48,6 @@ def train_network(config):
             output = model.forward(data.double())
 
             loss = criterion(output, label)
-            # TODO @amrita add loss_train, loss_val
-            # TODO @amrita need to double check this is okay, needed for when edge importance weighting is used
             if batch_idx == 0:
                 loss.backward(retain_graph = True)
             else:
@@ -55,12 +59,6 @@ def train_network(config):
 
             if batch_idx == config['batch_size'] - 1:
                 break
-
-
-    # get prediction
-    # TODO replace with test set
-    # pred = torch.argmax(model(test_data), dim=1)
-
 
 
 if __name__ == "__main__":
