@@ -147,7 +147,7 @@ class SpatialConv(nn.Module):
 
         N, C, T, _ = f_in.shape # Number of data points, number of channels, number of time frames
         f_in = self.W(f_in) # Dimension is (N, K * C_out, T, V)
-        f_in = f_in.view(N, self.K, self.C_out, T, self.V) # TODO Order preserved?
+        f_in = f_in.view(N, self.K, self.C_out, T, self.V)
         f_out = torch.einsum('kvw,nkctw->nctv', self.A, f_in)
 
         return f_out
