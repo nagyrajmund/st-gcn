@@ -20,7 +20,7 @@ from scripts.report.generate_figures import plot_conf_matrix
 early_stop_callback = EarlyStopping(
     monitor='val_loss',
     min_delta=0.00,
-    patience=20,
+    patience=100,
     verbose=False,
     mode='min'
 )
@@ -257,7 +257,8 @@ class L_STGCN(LightningModule):
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
-
+        # early stopping takes min epochs into consideration
+        parser.add_argument('--min_epochs', type=int, default=500, help='min epochs to run the network for.')
         # parser.add_argument('--early_stop', type=bool, default=False, help='use early stopping during training')
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
         #TODO rajmund: confidence score, optimizer type missing
