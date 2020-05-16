@@ -25,7 +25,7 @@ from network.st_graphconv import SpatialTemporalConv
 early_stop_callback = EarlyStopping(
     monitor='val_loss',
     min_delta=0.00,
-    patience=1,
+    patience=20,
     verbose=False,
     mode='min'
 )
@@ -243,7 +243,7 @@ class L_STGCN(LightningModule):
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
 
-        # parser.add_argument('--early_stop_callback', type=bool, default=False, help='use early stopping during training')
+        # parser.add_argument('--early_stop', type=bool, default=False, help='use early stopping during training')
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
         #TODO rajmund: confidence score, optimizer type missing
         return parser
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     hparams = build_argument_parser().parse_args()
     model = L_STGCN(hparams)
     #TODO: check Trainer args: gradient clipping, amp_level for 16-bit precision etc
-    trainer = Trainer.from_argparse_args(hparams)
+    trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback)
     trainer.fit(model)
     trainer.test()
 
