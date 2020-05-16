@@ -137,6 +137,7 @@ class L_STGCN(LightningModule):
 
     def prepare_data(self):
         if hparams.augment_data:
+            print('Augmenting data')
             transforms = augment_data
         else:
             transforms = None
@@ -296,10 +297,12 @@ def build_argument_parser():
     parser.add_argument('--dataset_dir', type=str, default='../datasets/KTH_Action_Dataset', help='path to the dataset')
     parser.add_argument('--C_in', type=int, default=2, help='number of channels in the data')
     parser.add_argument('--num_workers', type=int, default=1)
-    # parser.add_argument('--min_epochs', type=int, default=500, help='min epochs to run the network for.')
+    parser.add_argument('--distance_file', type=str, default='')
+    parser.add_argument('--use_early_stopping', type=bool, default=False)
+
     parser = L_STGCN.add_model_specific_args(parser)  # Add model-specific args
     parser = Trainer.add_argparse_args(parser)  # Add ALL training-specific args
-    parser.add_argument('--distance_file', type=str, default='')
+
     # In case of spatial conf. partitioning, pre-calculate distances and store them in a file
 
     return parser
@@ -311,7 +314,13 @@ if __name__ == "__main__":
 
     model = L_STGCN(hparams)
     # TODO: check Trainer args: gradient clipping, amp_level for 16-bit precision etc
-    trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback, min_epochs=500)
+    # TODO: tidy up and add min epochs, patience etc to args
+    if hparams.use_early_stopping:
+        print('Using early stopping')
+        trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback, min_epochs=500)
+    else:
+        print('Not using early stopping')
+        trainer = Trainer.from_argparse_args(hparams)
     trainer.fit(model)
     trainer.test()
     model.on_test_end()
