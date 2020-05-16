@@ -15,12 +15,7 @@ from torch.utils.data import DataLoader, RandomSampler
 from network import st_graphconv
 from argparse import ArgumentParser
 from network.st_graphconv import SpatialTemporalConv
-
-# class ConfusionMatrixCallback(Callback):
-# TODO @amrita
-#     def on_train_end(self, trainer):
-#         print('Saving Confusion matrix')
-#         trainer.
+from scripts.report.generate_figures import plot_conf_matrix
 
 early_stop_callback = EarlyStopping(
     monitor='val_loss',
@@ -49,6 +44,7 @@ class L_STGCN(LightningModule):
         A = get_normalized_adjacency_matrices(hparams.partitioning, hparams.d, distance_file=hparams.distance_file)
         self.K = A.shape[0]
         self.V = A.shape[1]
+        self.nr_classes = hparams.nr_classes
 
         # TODO: check if masks are being trained
         if hparams.use_edge_importance:
@@ -112,9 +108,15 @@ class L_STGCN(LightningModule):
         accuracy = (pred == gt).sum().item() / len(pred)
         return accuracy
 
-    def compute_conf_mat(self, pred, lbs):
-        # TODO @amrita, return this after end of training for test set so it can be saved to csv
-        pass
+    def compute_conf_mat(self, dataloader):
+        confusion_matrix = torch.zeros(self.nr_classes, self.nr_classes)
+        for i, (x, y) in enumerate(dataloader):
+            pred = self.forward(x)
+            pred = torch.argmax(pred, axis=1)
+
+            for i, j in zip(y, pred):
+                confusion_matrix[i, j] += 1
+        return confusion_matrix
 
 
     def prepare_data(self):
@@ -207,6 +209,19 @@ class L_STGCN(LightningModule):
         tensorboard_logs = {'val_loss': avg_loss, 'val_acc': avg_accuracy}
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
+
+    def on_train_end(self):
+        print('Saving Confusion matrix')
+        confusion_matrix = self.compute_conf_mat(self.val_dataloader())
+        fig = plot_conf_matrix(confusion_matrix)
+        self.logger.experiment.add_figure("Confusion matrix", fig, global_step=None, close=True, walltime=None)
+
+    def on_test_end(self):
+        print('Saving Confusion matrix')
+        confusion_matrix = self.compute_conf_mat(self.test_dataloader())
+        fig = plot_conf_matrix(confusion_matrix)
+        self.logger.experiment.add_figure("Confusion matrix", fig, global_step=None, close=True, walltime=None)
+        
 
     def test_step(self, batch, batch_idx):
         x, y = batch

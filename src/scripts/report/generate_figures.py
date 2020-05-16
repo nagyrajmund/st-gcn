@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import csv
+import numpy as np
 
 sns.set()
 
-def plot_diagram(x, y, label, show=False, file_name=None):
+def plot_diagram(x, y, label, title="", show=False, file_name=None):
     plt.plot(x, y, label=label)
+    plt.title(title)
     plt.legend()
     fig = plt.gcf()
 
@@ -26,25 +28,38 @@ def open_csv(file_name, header=True):
             y.append(float(row[2]))
     return x, y
 
-def plot_multiple_diagrams(file_names, labels, out_img):
+def plot_multiple_diagrams(file_names, labels, title, out_img):
     assert len(file_names) == len(labels)
     nr_of_files = len(file_names)
 
-    logs = list(zip(file_names, labels))
-
-    for i in range(nr_of_files):
-        show = (i == nr_of_files - 1)
-        file_name, label = logs[i]
+    for i, (file_name, label) in enumerate(zip(file_names, labels)):
         x, y = open_csv(file_name)
-        plot_diagram(x, y, label, show)
+        if i == nr_of_files - 1:
+            plot_diagram(x, y, label, title, True, out_img)
+        else:
+            plot_diagram(x, y, label, title)
+
+def plot_conf_matrix(mat):
+    n = mat.shape[0]
+    plt.grid(False)
+    plt.xticks(range(n))
+    plt.yticks(range(n))
+    plt.xlabel('True labels')
+    plt.ylabel('Predicted labels')
+    for (i, j), z in np.ndenumerate(mat):
+        plt.text(j, i, '{:0.1f}'.format(z), ha='center', va='center')
+    plt.imshow(mat)
+    plt.colorbar()
+    fig = plt.gcf()
+    return fig
 
 # x, y = open_csv("logs/run-version_1-tag-loss.csv")
-# plot_diagram(x, y, "First", False)
+# plot_diagram(x, y, "First", "", False)
 # x, y = open_csv("logs/run-version_2-tag-loss.csv")
-# plot_diagram(x, y, "Second", False)
+# plot_diagram(x, y, "Second", "", False)
 # x, y = open_csv("logs/run-version_3-tag-loss.csv")
-# plot_diagram(x, y, "Third", True, "img/test.png")
+# plot_diagram(x, y, "Third", "Title", True, "img/test.png")
 
-file_names = ["logs/run-version_1-tag-loss.csv", "logs/run-version_2-tag-loss.csv", "logs/run-version_3-tag-loss.csv"]
-labels = ["First", "Second", "Third"]
-plot_multiple_diagrams(file_names, labels, "img/test.png")
+# file_names = ["logs/run-version_1-tag-loss.csv", "logs/run-version_2-tag-loss.csv", "logs/run-version_3-tag-loss.csv"]
+# labels = ["First", "Second", "Third"]
+# plot_multiple_diagrams(file_names, labels, "Title", "img/test.png")
