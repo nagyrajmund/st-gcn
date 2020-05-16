@@ -3,7 +3,7 @@ import sys
 sys.path.append('./')
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from data.datasets import KTHDataset, SplitDataset
 from data.util import loopy_pad_collate_fn
@@ -121,7 +121,7 @@ class L_STGCN(LightningModule):
         return accuracy
 
     def compute_conf_mat(self, dataloader):
-        confusion_matrix = torch.zeros(self.nr_classes, self.nr_classes)
+        confusion_matrix = torch.zeros(self.nr_classes, self.nr_classes, dtype=int)
         device = self.hparams.device
         gpus = self.hparams.gpus
 
@@ -228,13 +228,15 @@ class L_STGCN(LightningModule):
         print('Saving Confusion matrix')
         confusion_matrix = self.compute_conf_mat(self.val_dataloader())
         fig = plot_conf_matrix(confusion_matrix)
-        self.logger.experiment.add_figure("Confusion matrix", fig, global_step=None, close=True, walltime=None)
+        self.logger.experiment.add_figure( \
+            "Confusion matrix for validation set", fig, global_step=None, close=True, walltime=None)
 
     def on_test_end(self):
         print('Saving Confusion matrix')
         confusion_matrix = self.compute_conf_mat(self.test_dataloader())
         fig = plot_conf_matrix(confusion_matrix)
-        self.logger.experiment.add_figure("Confusion matrix", fig, global_step=None, close=True, walltime=None)
+        self.logger.experiment.add_figure( \
+            "Confusion matrix for test set", fig, global_step=None, close=True, walltime=None)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -306,12 +308,12 @@ def build_argument_parser():
 if __name__ == "__main__":
     # Parse command-line args
     hparams = build_argument_parser().parse_args()
+    
     model = L_STGCN(hparams)
     # TODO: check Trainer args: gradient clipping, amp_level for 16-bit precision etc
     trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback, min_epochs=1, max_epochs=1)
     trainer.fit(model)
     trainer.test()
-
-
+    model.on_test_end()
 
 

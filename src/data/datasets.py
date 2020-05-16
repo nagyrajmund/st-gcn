@@ -19,7 +19,7 @@ class SplitDataset:
     def _get_indices(self, train, val, test):
         return list(train.index.values), list(val.index.values), list(test.index.values)
 
-    def split_by_subject(self, train=1, val=1, test=23, randomise_split=False):
+    def split_by_subject(self, train=15, val=5, test=5, randomise_split=False):
         ''' returns: indices corresponding to train and test, with train/(train+test) subjects in the train set,
             test/(train+test) subjects in the test set.
             randomise_split: boolean, if true, subjects are randomly allocated to train, val, test set

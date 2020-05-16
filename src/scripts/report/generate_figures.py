@@ -47,7 +47,7 @@ def plot_conf_matrix(mat):
     plt.xlabel('True labels')
     plt.ylabel('Predicted labels')
     for (i, j), z in np.ndenumerate(mat):
-        plt.text(j, i, '{:0.1f}'.format(z), ha='center', va='center')
+        plt.text(j, i, '{:d}'.format(z), ha='center', va='center')
     plt.imshow(mat)
     plt.colorbar()
     fig = plt.gcf()
