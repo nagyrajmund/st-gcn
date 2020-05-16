@@ -308,10 +308,10 @@ def build_argument_parser():
 if __name__ == "__main__":
     # Parse command-line args
     hparams = build_argument_parser().parse_args()
-    
+
     model = L_STGCN(hparams)
     # TODO: check Trainer args: gradient clipping, amp_level for 16-bit precision etc
-    trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback, min_epochs=1, max_epochs=1)
+    trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback, min_epochs=500)
     trainer.fit(model)
     trainer.test()
     model.on_test_end()
