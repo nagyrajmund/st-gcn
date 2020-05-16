@@ -44,8 +44,8 @@ def plot_conf_matrix(mat):
     plt.grid(False)
     plt.xticks(range(n))
     plt.yticks(range(n))
-    plt.xlabel('True labels')
-    plt.ylabel('Predicted labels')
+    plt.ylabel('True labels')
+    plt.xlabel('Predicted labels')
     for (i, j), z in np.ndenumerate(mat):
         plt.text(j, i, '{:d}'.format(z), ha='center', va='center')
     plt.imshow(mat)

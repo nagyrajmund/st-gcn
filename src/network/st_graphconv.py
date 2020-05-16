@@ -31,7 +31,6 @@ class SpatialTemporalConv(nn.Module):
         self.residual = residual
 
         # Batch normalization
-        # TODO Is it okay to use this here? According to the paper,
         # "In our experiments, we first feed input skeletons to a batch normalization layer to normalize data."
         self.batch_n = nn.BatchNorm2d(C_in)
 

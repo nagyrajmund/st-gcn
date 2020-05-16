@@ -140,7 +140,6 @@ class KTHDataset(Dataset):
         else:
             idxs = [idx]
 
-        # TODO (rajmund): we could add a try-catch here, but I think it would slow us down
         # load sequences and labels for slice/index given
         sequences = np.asarray([np.load(file) for i in idxs for file in [self.filenames[i]]])
         labels = self.labels[idxs]
