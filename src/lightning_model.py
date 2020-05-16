@@ -211,17 +211,17 @@ class L_STGCN(LightningModule):
 
 
     def on_train_end(self):
-        print('Saving Confusion matrix')
+        print('Saving Confusion matrix for validation data')
         confusion_matrix = self.compute_conf_mat(self.val_dataloader())
         fig = plot_conf_matrix(confusion_matrix)
         self.logger.experiment.add_figure("Confusion matrix", fig, global_step=None, close=True, walltime=None)
 
     def on_test_end(self):
-        print('Saving Confusion matrix')
+        print('Saving Confusion matrix for test data')
         confusion_matrix = self.compute_conf_mat(self.test_dataloader())
         fig = plot_conf_matrix(confusion_matrix)
         self.logger.experiment.add_figure("Confusion matrix", fig, global_step=None, close=True, walltime=None)
-        
+
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -257,9 +257,6 @@ class L_STGCN(LightningModule):
         parser.add_argument('--data_split', type=int, default=0, help='way to split the data into train/val/test sets (0 - cross-subject, 1 - cross-scenario, 2 - ordinary stratified')
         parser.add_argument('--train_scenarios', type=list, default=["d1", "d2"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
         parser.add_argument('--val_scenarios', type=list, default=["d3"], help='scenarios to put into the training set (list of any from d1,d2,d3,d4)')
-        # early stopping takes min epochs into consideration
-        parser.add_argument('--min_epochs', type=int, default=500, help='min epochs to run the network for.')
-        # parser.add_argument('--early_stop', type=bool, default=False, help='use early stopping during training')
         # parser.add_argument('--optimizer', type=str, default='adam', help='optimizer to use (adam, sgd)')
         #TODO rajmund: confidence score, optimizer type missing
         return parser
@@ -276,6 +273,7 @@ def build_argument_parser():
     parser = L_STGCN.add_model_specific_args(parser) # Add model-specific args
     parser = Trainer.add_argparse_args(parser) # Add ALL training-specific args
     parser.add_argument('--distance_file', type=str, default='')
+
     # In case of spatial conf. partitioning, pre-calculate distances and store them in a file
 
     return parser
@@ -285,7 +283,7 @@ if __name__ == "__main__":
     hparams = build_argument_parser().parse_args()
     model = L_STGCN(hparams)
     #TODO: check Trainer args: gradient clipping, amp_level for 16-bit precision etc
-    trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback)
+    trainer = Trainer.from_argparse_args(hparams, early_stop_callback=early_stop_callback, min_epochs=100)
     trainer.fit(model)
     trainer.test()
 
