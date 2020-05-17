@@ -1,17 +1,19 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import seaborn as sns
 import csv
 import numpy as np
 
 sns.set()
 
-def moving_average(y, N=6):
+def moving_average(y, N=10):
     y_padded = np.pad(y, (N // 2, N - 1 - N // 2), mode='edge')
     y_smooth = np.convolve(y_padded, np.ones((N,)) / N, mode='valid')
     return y_smooth
 
 def plot_diagram(x, y, label, title="", show=False, file_name=None):
     plt.plot(x, moving_average(y), label=label)
+    matplotlib.rcParams.update({'font.size': 72})
     plt.xlabel("steps", horizontalalignment='right', x=1.0)
     plt.title(title)
     plt.legend()
