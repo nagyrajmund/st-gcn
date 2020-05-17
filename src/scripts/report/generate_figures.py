@@ -5,8 +5,13 @@ import numpy as np
 
 sns.set()
 
+def moving_average(x, n=6):
+    box = np.ones(n)/n
+    y_smooth = np.convolve(x, box, mode='same')
+    return y_smooth
+
 def plot_diagram(x, y, label, title="", show=False, file_name=None):
-    plt.plot(x, y, label=label)
+    plt.plot(x, moving_average(y), label=label)
     plt.title(title)
     plt.legend()
     fig = plt.gcf()
