@@ -5,13 +5,14 @@ import numpy as np
 
 sns.set()
 
-def moving_average(x, n=6):
-    box = np.ones(n)/n
-    y_smooth = np.convolve(x, box, mode='same')
+def moving_average(y, N=6):
+    y_padded = np.pad(y, (N // 2, N - 1 - N // 2), mode='edge')
+    y_smooth = np.convolve(y_padded, np.ones((N,)) / N, mode='valid')
     return y_smooth
 
 def plot_diagram(x, y, label, title="", show=False, file_name=None):
     plt.plot(x, moving_average(y), label=label)
+    plt.xlabel("steps", horizontalalignment='right', x=1.0)
     plt.title(title)
     plt.legend()
     fig = plt.gcf()
