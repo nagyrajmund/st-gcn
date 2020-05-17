@@ -52,14 +52,3 @@ def plot_conf_matrix(mat):
     plt.colorbar()
     fig = plt.gcf()
     return fig
-
-# x, y = open_csv("logs/run-version_1-tag-loss.csv")
-# plot_diagram(x, y, "First", "", False)
-# x, y = open_csv("logs/run-version_2-tag-loss.csv")
-# plot_diagram(x, y, "Second", "", False)
-# x, y = open_csv("logs/run-version_3-tag-loss.csv")
-# plot_diagram(x, y, "Third", "Title", True, "img/test.png")
-
-# file_names = ["logs/run-version_1-tag-loss.csv", "logs/run-version_2-tag-loss.csv", "logs/run-version_3-tag-loss.csv"]
-# labels = ["First", "Second", "Third"]
-# plot_multiple_diagrams(file_names, labels, "Title", "img/test.png")
