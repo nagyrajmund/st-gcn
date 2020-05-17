@@ -226,11 +226,12 @@ class L_STGCN(LightningModule):
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def on_train_end(self):
-        print('Saving Confusion matrix')
-        confusion_matrix = self.compute_conf_mat(self.val_dataloader())
-        fig = plot_conf_matrix(confusion_matrix)
-        self.logger.experiment.add_figure( \
-            "Confusion matrix for validation set", fig, global_step=None, close=True, walltime=None)
+        # print('Saving Confusion matrix')
+        print('Unable to save confusion matrix')
+        # confusion_matrix = self.compute_conf_mat(self.val_dataloader())
+        # fig = plot_conf_matrix(confusion_matrix)
+        # self.logger.experiment.add_figure( \
+        #     "Confusion matrix for validation set", fig, global_step=None, close=True, walltime=None)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -245,11 +246,11 @@ class L_STGCN(LightningModule):
         avg_accuracy = sum([x['acc'] for x in outputs]) / len(outputs)
         tensorboard_logs = {'avg_test_loss': avg_loss, 'avg_test_acc': avg_accuracy}
 
-        print('Saving Confusion matrix')
-        confusion_matrix = self.compute_conf_mat(self.test_dataloader())
-        fig = plot_conf_matrix(confusion_matrix)
-        self.logger.experiment.add_figure( \
-            "Confusion matrix for test set", fig, global_step=None, close=True, walltime=None)
+        # print('Saving Confusion matrix')
+        # confusion_matrix = self.compute_conf_mat(self.test_dataloader())
+        # fig = plot_conf_matrix(confusion_matrix)
+        # self.logger.experiment.add_figure( \
+        #     "Confusion matrix for test set", fig, global_step=None, close=True, walltime=None)
 
         return {'avg_test_loss': avg_loss, 'log': tensorboard_logs}
 
@@ -321,7 +322,16 @@ if __name__ == "__main__":
     else:
         print('Not using early stopping')
         trainer = Trainer.from_argparse_args(hparams)
+
     trainer.fit(model)
     trainer.test()
+    print('Saving logs')
+    trainer.save_checkpoint("../models/final_model.ckpt")
+
+    # load model back in
+#     trainer = Trainer.from_argparse_args(hparams)
+#     checkpoint_model = L_STGCN.load_from_checkpoint(checkpoint_path="../models/final_model.ckpt")
+#     trainer.fit(checkpoint_model)
+#     checkpoint_model.on_test_end()
 
 
