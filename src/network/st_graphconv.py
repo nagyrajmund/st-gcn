@@ -6,7 +6,6 @@ class SpatialTemporalConv(nn.Module):
     Perform spatial and temporal convolution on a sequence of joint locations.
     """
 
-    # TODO @livia Not sure that some layers are in the correct order? (Batch normalization, ReLU)
     def __init__(self, C_in, C_out, A, gamma, temporal_stride, temporal_padding, dropout_rate=0.5, residual=False):
         """
         Parameters:
