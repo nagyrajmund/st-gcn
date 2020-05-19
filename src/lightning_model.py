@@ -123,11 +123,8 @@ class L_STGCN(LightningModule):
     def compute_conf_mat(self, dataloader):
         confusion_matrix = torch.zeros(self.nr_classes, self.nr_classes, dtype=int)
         device = self.hparams.device
-        gpus = self.hparams.gpus
 
         for i, (x, y) in enumerate(dataloader):
-            if gpus > 0:
-                x = x.to(device)
             pred = self.forward(x)
             pred = torch.argmax(pred, axis=1)
 
@@ -204,6 +201,7 @@ class L_STGCN(LightningModule):
         output = self.forward(x)
         loss = F.cross_entropy(output, y)
         acc = self.compute_accuracy(output, y)
+        print('loss: ', loss)
         return {'loss': loss, 'acc': acc}
 
     def training_epoch_end(self, outputs):
