@@ -1,4 +1,4 @@
-**Project status**: under active development
+**Project status**: wrapping up, no substantial changes expected
 
 
 # Description

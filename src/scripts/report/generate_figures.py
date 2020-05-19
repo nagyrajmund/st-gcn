@@ -1,12 +1,20 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import seaborn as sns
 import csv
 import numpy as np
 
 sns.set()
 
+def moving_average(y, N=10):
+    y_padded = np.pad(y, (N // 2, N - 1 - N // 2), mode='edge')
+    y_smooth = np.convolve(y_padded, np.ones((N,)) / N, mode='valid')
+    return y_smooth
+
 def plot_diagram(x, y, label, title="", show=False, file_name=None):
-    plt.plot(x, y, label=label)
+    plt.plot(x, moving_average(y), label=label)
+    matplotlib.rcParams.update({'font.size': 72})
+    plt.xlabel("steps", horizontalalignment='right', x=1.0)
     plt.title(title)
     plt.legend()
     fig = plt.gcf()
@@ -52,14 +60,3 @@ def plot_conf_matrix(mat):
     plt.colorbar()
     fig = plt.gcf()
     return fig
-
-# x, y = open_csv("logs/run-version_1-tag-loss.csv")
-# plot_diagram(x, y, "First", "", False)
-# x, y = open_csv("logs/run-version_2-tag-loss.csv")
-# plot_diagram(x, y, "Second", "", False)
-# x, y = open_csv("logs/run-version_3-tag-loss.csv")
-# plot_diagram(x, y, "Third", "Title", True, "img/test.png")
-
-# file_names = ["logs/run-version_1-tag-loss.csv", "logs/run-version_2-tag-loss.csv", "logs/run-version_3-tag-loss.csv"]
-# labels = ["First", "Second", "Third"]
-# plot_multiple_diagrams(file_names, labels, "Title", "img/test.png")
