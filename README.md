@@ -1,4 +1,4 @@
-**Project status**: wrapping up, no substantial changes expected
+**Project status**: course is over, tidying up the repo currently
 
 
 # Description
