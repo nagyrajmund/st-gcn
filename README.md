@@ -2,7 +2,7 @@
 
 
 # Description
-Authors*: [Livia Qian](https://github.com/Leena01), [Amrita Panesar](https://github.com/09panesara), [Rajmund Nagy](https://github.com/nagyrajmund/)
+Authors*: [Livia Qian](https://github.com/qianlivia), [Amrita Panesar](https://github.com/09panesara), [Rajmund Nagy](https://github.com/nagyrajmund/)
 
 This is the project repository of "**Spatiotemporal Graph Convolutional Networks for Action Recognition**" for the [DD2424 Deep learning in data science course](https://www.kth.se/student/kurser/kurs/DD2424?l=en) at KTH. The basis of the project is [this publication](http://dahualin.org/publications/dhl18_stgcn.pdf).
 
